@@ -31,12 +31,15 @@ height
 growth form
 color
 flower or fruit characteristics
+flower parts or plant parts (e.g. corolla, filament, stamen, sepal, petiole, rays, band ,etc.....)
 abundance (e.g. common, rare, locally common)
 maturity or condition
 chromosome counts (e.g. n=14)
 phenology (flowering, fruiting, in bud, etc.)
 woodiness and herbaceousness
-botany specific plant description terms (e.g glabrous, prostrate, rays, band etc...).
+botany specific plant description terms (e.g glabrous, prostrate, cespitose, etc...).
+whether plant is aquatic, a water plant, a weed, shrub etc.... (e.g general plant descriptor)
+whether perennial or annual plant.
 
 Examples:
 "Small annual herb with yellow flowers"
@@ -52,11 +55,13 @@ Habitat descriptions
 Soil or substrate
 Associated species
 Geographic or locality information
-Roads, parks, mountains, counties, directions
+Roads, parks, mountains, counties, directions.
+Proper names of places.
 Coordinates or TRS
-Scientific names or taxonomic authors
+Scientific names or taxonomic authors, including of associated species.
 Collector names or collection numbers
 Random fragments or meaningless text
+Altitude/ Elevation
 
 ▶️ FILTERING NONSENSE:
 
@@ -96,3 +101,11 @@ Input:
 Output:
 Common perennial herb, flowers blue.
 
+Input:
+"1222116 429469 STANFORD UNIVERSITY
+HYBRID Teline spachiana (Webb) Gibbs + Dinswall X T. stenopetala W+B. Determinavit herid Dinswall X 1968
+Leguminosae Cytisus racemosus Nichols
+roadside, escaped from nearby house planting, Page Mill Road, 0.5 mi. above(SW) Moody Road. Los Altos Hills, San Mateo Co. April 20, 1960 - T C Fuller #4086"
+
+Output:
+"HYBRID Teline spachiana (Webb) Gibbs + Dinswall X T. stenopetala W+B. Determinavit herid Dinswall X 1968"
