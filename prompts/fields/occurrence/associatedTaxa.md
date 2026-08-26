@@ -1,36 +1,51 @@
 ---
 name: associatedTaxa
-description: Extract the name(s) of other species found with or near the specimen. This field captures taxa associated with the collection but not the primary specimen itself
+description: Extract label text describing other named plants, fungi, animals, or taxa that occur with, near, under, over, on, or otherwise in ecological or spatial association with the collected specimen.
 module: llama/fields/occurrence/associatedTaxa.py
 ---
 
 # Prompt associatedTaxa
 
-`associatedTaxa` (str): Extract the name(s) of other species found with or near the specimen. This field captures taxa associated with the collection but not the primary specimen itself.
+`associatedTaxa` (str): Extract label text describing OTHER named taxa that occur in an ecological, biological, or spatial relationship with the collected specimen.
 
-✅ Include:
-- Host plants (e.g., 'on Quercus alba', 'host: Salix exigua')
-- Epiphyte substrates (e.g., 'on bark of Pinus ponderosa')
-- Co-occurring or companion species (e.g., 'with Agoseris aurantiaca')
-- Parasites, pollinators, or symbiotic partners noted on the label
-- Multiple associated taxa separated by commas or 'and'
+Only extract taxa when the label indicates that they occur with, near, under, among, on, adjacent to, or in the surrounding vegetation/community of the specimen.
 
-❌ DO NOT include:
-- The primary specimen's own scientific name — that belongs in `scientificName`
-- Habitat or environmental descriptors that are not specific taxa (e.g., 'on rocky outcrop', 'in grassland')
-- Generic descriptions (e.g., 'on a tree', 'on shrub') — extract only named taxa
-- Labels or prefixes (e.g., 'host:', 'on:', 'associated with:') — extract only the taxon names
-- Common/vernacular names of associated taxa unless the scientific name is not available
+Examples of valid context:
+- "with Artemisia vulgaris"
+- "growing under Quercus agrifolia and Aesculus californica"
+- "common plants include..."
+- "also present..."
+- "Pinus sabiniana and Quercus douglasii the common dominants"
+- "Rhus diversiloba ... common shrubs in the understory"
+- "Douglas fir forest"
+- host, substrate, parasite, pollinator, or symbiotic relationships
 
-Normalization: Preserve the taxon names as written. If multiple associated taxa are listed, include all of them, separated by '; '. Strip labels and contextual phrases, keeping only the species or genus names.
+IMPORTANT: A second taxon name appearing on the label is NOT by itself evidence of associated taxa.
 
-Examples:
-- 'on Quercus alba' → 'Quercus alba'
-- 'host: Salix exigua' → 'Salix exigua'
-- 'with Agoseris aurantiaca and Eriophyllum lanatum' → 'Agoseris aurantiaca; Eriophyllum lanatum'
-- 'on bark of Pinus ponderosa' → 'Pinus ponderosa'
-- 'on a tree' → '' (no specific taxon named)
-- 'on rocky outcrop' → '' (habitat descriptor, not a taxon)
-- 'Quercus alba (host) with Cynips quercusfolii (gall wasp)' → 'Quercus alba; Cynips quercusfolii'
+Do NOT extract taxa that occur only as:
+- the specimen's identification
+- determination or annotation labels
+- previous or revised identifications
+- synonyms or alternative names
+- hybrid parentage
+- taxonomic comparisons ("similar to", "related to")
+- family names or other identification metadata
+
+For example:
+
+"Gaillardia x grandiflora. Hybrid between G. aristata and G. pulchella."
+→ ""
+
+"Hoita macrostachya ... Det. James Grimes ... Psoralea macrostachya DC."
+→ ""
+
+"Growing with Rhus diversiloba, Rosa californica."
+→ "Growing with Rhus diversiloba, Rosa californica."
+
+Preserve the original wording of the association as closely as possible. Do not reduce it to a normalized list of taxon names. Retain useful ecological wording such as "forest", "dominant", "understory", "with", "beneath", "also present", etc.
+
+Remove unrelated locality, date, collector, elevation, and specimen-description text.
+
+When uncertain whether another taxon is an ecological associate or merely another identification of the specimen, return an empty string.
 
 If no associated taxa are mentioned, return an empty string.
