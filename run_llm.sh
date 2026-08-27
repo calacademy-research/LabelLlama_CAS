@@ -9,7 +9,7 @@ source .venv/bin/activate
 echo "[$(date)] Virtual environment activated."
 
 
-API_KEY="${OPENAI_API_KEY:-}"
+API_KEY="${LLM_API_KEY:-}"
 
 if [ -z "$API_KEY" ]; then
     echo "ERROR: OPENAI_API_KEY is not set."
