@@ -10,7 +10,7 @@ class DateIdentified(LlmField):
     # --------------
     description: ClassVar[str] = """
         Extract the date (or date range) when the specimen was identified, verified, or
-        determined
+        determined. Do not use the collection date.
         """
     # --------------
 

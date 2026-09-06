@@ -8,11 +8,13 @@ from llama.llm_fields.llm_field import LlmField
 class Habit(LlmField):
     # --------------
     description: ClassVar[str] = """
-        Extract the plant's habit or general growth form/shape
+        Extract the plant habit or general growth form as written, such as tree, shrub,
+        herb, vine, grass, forb, rosette, clump-forming, or prostrate.
         """
     # --------------
 
     habit: str = ""
 
     def __post_init__(self, text: str) -> None:
+        self.habit = self.clean_punct(self.habit)
         self.habit = self.hallucinated_str(self.habit, text)

@@ -1,0 +1,56 @@
+import unittest
+
+from llama.llm_fields.taxon.family import Family
+
+
+class TestFamily(unittest.TestCase):
+    def test_family_01(self) -> None:
+        # Family names are title-cased
+        assert Family("", "rosaceae").family == "Rosaceae"
+        assert Family("", "ROSACEAE").family == "Rosaceae"
+
+    def test_family_02(self) -> None:
+        # Empty input stays empty
+        assert Family("", "").family == ""
+
+    def test_family_03(self) -> None:
+        # Non-string values are converted to strings
+        assert Family("", None).family == ""
+        assert Family("", 123).family == "123"
+
+    def test_score_01(self) -> None:
+        # Family uses a custom scoring method
+        assert Family.scoring_method == "CUST"
+        # An exact match scores 1.0
+        assert (
+            Family.score("Rosaceae", "Rosaceae", {"scientificName": "Rosa gallica"})
+            == 1.0
+        )
+
+    def test_score_02(self) -> None:
+        # With an empty expectation, a family matching the genus's known
+        # family scores 1.0
+        assert Family.score("", "Rosaceae", {"scientificName": "Rosa gallica"}) == 1.0
+
+    def test_score_03(self) -> None:
+        # With an empty expectation, a family that does not match the genus's
+        # known family scores 0.0
+        assert Family.score("", "Asteraceae", {"scientificName": "Rosa gallica"}) == 0.0
+
+    def test_score_04(self) -> None:
+        # A genus not in the lookup table cannot earn the free 1.0
+        assert Family.score("", "Rosaceae", {"scientificName": "Canis latrans"}) == 0.0
+
+    def test_score_05(self) -> None:
+        # With a non-empty expectation, dissimilar values score below 1.0
+        assert (
+            0.0
+            <= Family.score(
+                "Asteraceae", "Rosaceae", {"scientificName": "Rosa gallica"}
+            )
+            < 1.0
+        )
+
+    def test_score_06(self) -> None:
+        # A missing scientificName falls back to edit distance (0.0 vs non-empty)
+        assert Family.score("", "Rosaceae", {}) == 0.0

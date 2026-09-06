@@ -8,11 +8,14 @@ from llama.llm_fields.llm_field import LlmField
 class Island(LlmField):
     # --------------
     description: ClassVar[str] = """
-        Extract the name(s) of the island(s) on or near which the specimen was collected
+        Extract the island name where the specimen was collected. Do not use island
+        group, archipelago, country, state, or province names unless they are the island
+        name itself.
         """
     # --------------
 
     island: str = ""
 
     def __post_init__(self, text: str) -> None:
+        self.island = self.clean_punct(self.island)
         self.island = self.hallucinated_str(self.island, text)

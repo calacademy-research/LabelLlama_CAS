@@ -8,7 +8,8 @@ from llama.llm_fields.llm_field import LlmField
 class DecimalLongitude(LlmField):
     # --------------
     description: ClassVar[str] = """
-        Extract the decimal longitude at which the specimen was collected
+        Extract only decimal longitude coordinates already present in the text. Do not
+        convert coordinates.
         """
     # --------------
 
@@ -16,5 +17,8 @@ class DecimalLongitude(LlmField):
 
     def __post_init__(self, text: str) -> None:
         del text
-        long = self.to_float(self.decimalLongitude)
-        self.decimalLongitude = long if long is not None else ""
+        raw = self.to_str(self.decimalLongitude)
+        long = self.to_float(self.normalize_decimal_comma(raw))
+        # Clear values that are not a valid longitude (e.g. 200.0, or a
+        # malformed number the decimal-comma rule did not resolve).
+        self.decimalLongitude = "" if long is None or abs(long) > 180 else long

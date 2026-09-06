@@ -10,7 +10,7 @@ class IdentifiedByID(LlmField):
     # --------------
     description: ClassVar[str] = """
         Extract the globally unique identifier for the person, group, or organization
-        responsible for assigning the taxon to the specimen
+        responsible for assigning the taxon to the specimen.
         """
     # --------------
 
@@ -20,11 +20,13 @@ class IdentifiedByID(LlmField):
         del text
 
         self.identifiedByID = self.to_str(self.identifiedByID)
-        self.identifiedByID = re.sub(r"(#|Nº)", "", self.identifiedByID)
+        self.identifiedByID = re.sub(
+            r"(#|Nº|№|N.º|N°)", "", self.identifiedByID, flags=re.IGNORECASE
+        )
 
         # Remove the label
         self.identifiedByID = re.sub(
-            r"\b(no|number|num)\b[:,.;\s]*",
+            r"(\bno(?![a-z])|\bnumber|\bnum)[#:,.;\s]*",
             "",
             self.identifiedByID,
             flags=re.IGNORECASE,

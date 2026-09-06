@@ -9,7 +9,8 @@ from llama.llm_fields.llm_field import LlmField
 class VerbatimElevation(LlmField):
     # --------------
     description: ClassVar[str] = """
-        Extract the elevation or altitude at which the specimen was collected
+        Extract elevation or altitude exactly as written, including units, ranges, or
+        greater-than/less-than symbols. Do not convert between meters and feet.
         """
     # --------------
 
@@ -21,7 +22,7 @@ class VerbatimElevation(LlmField):
 
         # Remove the label
         self.verbatimElevation = re.sub(
-            r"\b(el\w*|alt\w*)\b[:,.;\s]*",
+            r"^(elevation|altitude|elev|alt|el)\.?\b[:,.;\s]*",
             "",
             self.verbatimElevation,
             flags=re.IGNORECASE,

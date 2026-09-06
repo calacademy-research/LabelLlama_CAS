@@ -8,12 +8,13 @@ from llama.llm_fields.llm_field import LlmField
 class Abundance(LlmField):
     # --------------
     description: ClassVar[str] = """
-        Extract the abundance or frequency of the specimen at the collection site
+        Extract statements about how common or abundant the taxon was at the collecting
+        site, such as rare, occasional, frequent, common, dominant, or percent cover.
         """
     # --------------
 
     abundance: str = ""
 
     def __post_init__(self, text: str) -> None:
+        self.abundance = self.clean_punct(self.abundance)
         self.abundance = self.hallucinated_str(self.abundance, text)
-        self.abundance = self.remove_trailing_punct(self.abundance)

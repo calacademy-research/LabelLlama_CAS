@@ -8,12 +8,13 @@ from llama.llm_fields.llm_field import LlmField
 class Woodiness(LlmField):
     # --------------
     description: ClassVar[str] = """
-        Extract the degree of woodiness of the plant (whether the stem is woody or
-        herbaceous)
+        Extract woodiness or stem-texture terms, such as woody, herbaceous,
+        suffrutescent, subshrub, shrub, tree, or vine, when explicitly stated.
         """
     # --------------
 
     woodiness: str = ""
 
     def __post_init__(self, text: str) -> None:
+        self.woodiness = self.clean_punct(self.woodiness)
         self.woodiness = self.hallucinated_str(self.woodiness, text)

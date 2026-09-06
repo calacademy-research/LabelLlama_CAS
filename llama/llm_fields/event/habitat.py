@@ -26,7 +26,7 @@ class Habitat(LlmField):
 
         # Remove the habitat label
         self.habitat = re.sub(
-            r"^habitat[:,.;\s]*", "", self.habitat, flags=re.IGNORECASE
+            r"^habitats?[:,.;\s]*", "", self.habitat, flags=re.IGNORECASE
         ).strip()
 
     @staticmethod

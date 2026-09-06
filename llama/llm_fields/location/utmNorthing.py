@@ -12,7 +12,7 @@ class UtmNorthing(LlmField):
     # --------------
     description: ClassVar[str] = """
         Extract the northing portion of the Universal Transverse Mercator (UTM)
-        coordinates
+        coordinates. Do not include the zone or easting value.
         """
     # --------------
 
@@ -21,5 +21,5 @@ class UtmNorthing(LlmField):
     def __post_init__(self, text: str) -> None:
         del text
         self.utmNorthing = self.to_str(self.utmNorthing)
-        self.utmNorthing = self.utmNorthing.lower().replace("n", "")
+        self.utmNorthing = self.utmNorthing.lower().replace("n", "").strip()
         self.utmNorthing = "" if self.utmNorthing in EMPTY_NE else self.utmNorthing

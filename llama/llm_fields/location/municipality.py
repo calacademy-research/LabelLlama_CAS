@@ -10,11 +10,12 @@ class Municipality(LlmField):
     description: ClassVar[str] = """
         Extract the municipality — the city, town, village, or other populated
         place where the specimen was collected. Municipalities are often also mentioned
-        in the `locality`
+        in the `locality`.
         """
     # --------------
 
     municipality: str = ""
 
     def __post_init__(self, text: str) -> None:
+        self.municipality = self.clean_punct(self.municipality)
         self.municipality = self.hallucinated_str(self.municipality, text)

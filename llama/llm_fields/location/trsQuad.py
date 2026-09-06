@@ -9,7 +9,8 @@ from llama.llm_fields.llm_field import LlmField
 class TrsQuad(LlmField):
     # --------------
     description: ClassVar[str] = """
-        Extract the quadrangle (quad) name associated with the TRS coordinates
+        Extract the named map quadrangle associated with the locality or TRS data. Do
+        not confuse quadrangle names with township, range, or section values.
         """
     # --------------
 
@@ -18,4 +19,9 @@ class TrsQuad(LlmField):
     def __post_init__(self, text: str) -> None:
         del text
         self.trsQuad = self.to_str(self.trsQuad)
-        self.trsQuad = re.sub(r"\b(quad\w*|q\.?)\b", "", self.trsQuad).strip()
+        self.trsQuad = re.sub(
+            r"^(quad[a-z\s.]*|q[.]?(?!\[a-z]))\s+",
+            "",
+            self.trsQuad,
+            flags=re.IGNORECASE,
+        ).strip()

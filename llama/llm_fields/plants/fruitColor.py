@@ -8,12 +8,13 @@ from llama.llm_fields.llm_field import LlmField
 class FruitColor(LlmField):
     # --------------
     description: ClassVar[str] = """
-        Extract the color(s) of the fruits of the specimen
+        Extract fruit color terms exactly as written. Do not include flower, leaf, stem,
+        or other plant-part colors.
         """
     # --------------
 
     fruitColor: str = ""
 
     def __post_init__(self, text: str) -> None:
+        self.fruitColor = self.clean_punct(self.fruitColor)
         self.fruitColor = self.hallucinated_str(self.fruitColor, text)
-        self.fruitColor = self.remove_trailing_punct(self.fruitColor)

@@ -8,7 +8,7 @@ from llama.llm_fields.llm_field import LlmField
 class ScientificNameAuthorship(LlmField):
     # --------------
     description: ClassVar[str] = """
-        Extract the authorship citation for the species-level scientific name
+        Extract only the author or author-year text associated with the species name.
         """
     # --------------
 
@@ -17,6 +17,4 @@ class ScientificNameAuthorship(LlmField):
     def __post_init__(self, text: str) -> None:
         del text
         self.scientificNameAuthorship = self.to_str(self.scientificNameAuthorship)
-        self.scientificNameAuthorship = self.clean_str_ends(
-            self.scientificNameAuthorship
-        )
+        self.scientificNameAuthorship = self.clean_punct(self.scientificNameAuthorship)

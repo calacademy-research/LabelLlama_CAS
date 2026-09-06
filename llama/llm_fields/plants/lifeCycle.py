@@ -8,12 +8,13 @@ from llama.llm_fields.llm_field import LlmField
 class LifeCycle(LlmField):
     # --------------
     description: ClassVar[str] = """
-        Extract the plant's life cycle or duration (how long the plant lives over the
-        course of its lifetime)
+        Extract life-cycle or duration terms such as annual, biennial, perennial,
+        monocarpic, or short-lived perennial when explicitly stated.
         """
     # --------------
 
     lifeCycle: str = ""
 
     def __post_init__(self, text: str) -> None:
+        self.lifeCycle = self.clean_punct(self.lifeCycle)
         self.lifeCycle = self.hallucinated_str(self.lifeCycle, text)

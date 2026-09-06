@@ -10,7 +10,7 @@ class Family(LlmField):
     # --------------
     description: ClassVar[str] = """
         Extract the taxonomic family of the specimen (e.g., 'Rosaceae', 'Asteraceae',
-        'Fabaceae')
+        'Fabaceae').
         """
     scoring_method: ClassVar[str] = "CUST"
     # --------------

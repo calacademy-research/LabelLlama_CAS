@@ -9,7 +9,8 @@ from llama.llm_fields.llm_field import LlmField
 class TrsRange(LlmField):
     # --------------
     description: ClassVar[str] = """
-        Extract the range portion of the Township-Range-Section (TRS) coordinates
+        Extract only the range portion of a Township-Range-Section location, such as R4E
+        or Range 4 East. Do not include township or section values.
         """
     # --------------
 
@@ -18,4 +19,6 @@ class TrsRange(LlmField):
     def __post_init__(self, text: str) -> None:
         del text
         self.trsRange = self.to_str(self.trsRange)
-        self.trsRange = re.sub(r"^r\s*", "", self.trsRange, flags=re.IGNORECASE)
+        self.trsRange = re.sub(
+            r"^r[a-z\s.]*", "", self.trsRange, flags=re.IGNORECASE
+        ).strip()

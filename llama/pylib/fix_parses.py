@@ -12,8 +12,16 @@ from typing import Any
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
 
-INT = re.compile(r"[-]?[\d,]+")
-FLOAT = re.compile(r" [-]? \d+ [\d,.]* | \.\d+", flags=re.VERBOSE)
+# A minus only counts as a sign when it is not glued to a preceding digit, so a
+# range like "12-34" yields [12, 34] rather than [12, -34].
+INT = re.compile(r"(?<!\d)-?\d[\d,]*")
+# A single optional decimal point; repeated separators like "1.2.3" no longer
+# match as one token (and float() is still guarded in str_to_float).
+FLOAT = re.compile(r"-?\d+(?:\.\d+)?|\.\d+")
+# A single comma with digits on both sides and no dot in the value is a
+# decimal comma (European convention): "45,5" means 45.5, not 455. A tail of
+# non-digit, non-dot characters (e.g. " N") is allowed and preserved.
+DECIMAL_COMMA = re.compile(r"^([+-]?\d+),(\d+)([^.\d]*)$")
 
 # For parsing dates
 SEP = r"[\s(.,/_'-]+"  # Date month, day, year separators
@@ -184,10 +192,27 @@ class FixParses:
             case _:
                 return []
 
+    def normalize_decimal_comma(self, value: str) -> str:
+        """
+        Convert an unambiguous decimal comma to a dot, else pass through.
+
+        Only "45,5" style values are converted: exactly one comma, digits on
+        both sides, and no dot in the value. "1,234.5" (a dot present) and
+        "1,234,567" (two commas) keep their thousands-separator meaning.
+        """
+        m = DECIMAL_COMMA.fullmatch(value)
+        return f"{m.group(1)}.{m.group(2)}{m.group(3)}" if m else value
+
     def str_to_float(self, value: str) -> float | None:
-        value = value.replace(",", "")
-        m = FLOAT.search(value)
-        return float(m[0]) if m else None
+        """Extract the first float from a string, or None if there is none."""
+        if value.find(".") != value.rfind("."):
+            return None
+        m = FLOAT.search(value.replace(",", ""))
+        if not m:
+            return None
+        with contextlib.suppress(ValueError):
+            return float(m[0])
+        return None
 
     def str_to_int(self, value: str) -> int | None:
         value = value.replace(",", "")
@@ -288,15 +313,18 @@ class FixParses:
 
         return value
 
-    def remove_leading_punct(self, value: str) -> str:
-        return re.sub(r"^[\s\"'.,;:(){}\[\]\-]+", "", value)
-
-    def remove_trailing_punct(self, value: str) -> str:
-        return re.sub(r"[\s\"'.,;:(){}\[\]\-]+$", "", value)
-
-    def clean_str_ends(self, value: str) -> str:
-        value = self.remove_leading_punct(value)
-        value = self.remove_trailing_punct(value)
+    def clean_punct(self, value: str) -> str:
+        value = value.strip()
+        value = re.sub(r"^[\s\"'.,;:-]+", "", value)
+        value = re.sub(r"[\s\"'.,;:-]+$", "", value)
+        if (
+            len(value) > 1
+            and value[0] in ("(", "{", "[")
+            and value[-1] in (")", "}", "]")
+        ):
+            value = value[1:-1]
+        value = re.sub(r"^[\s\"'.,;:-]+", "", value)
+        value = re.sub(r"[\s\"'.,;:-]+$", "", value)
         return value
 
     def reduce_list(self, value: list[Any]) -> Any | None:
@@ -315,15 +343,14 @@ class FixParses:
 
     def hallucinated_str(self, value: str, text: str) -> str:
         value = self.to_str(value)
-        if not text:
-            return value
         pattern = re.escape(str(value))
         value = value if re.search(pattern, text, flags=re.IGNORECASE) else ""
         return value
 
     @staticmethod
     def title_with_exceptions(value: str) -> str:
-        words = value.title().split()
+        words = value.split()
+        words = [w[0].upper() + (w[1:].lower() if len(w) > 1 else "") for w in words]
         words = [
             w.lower() if (i and w in TITLE_LOWER) else w for i, w in enumerate(words)
         ]

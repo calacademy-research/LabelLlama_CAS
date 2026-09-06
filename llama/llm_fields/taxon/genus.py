@@ -9,7 +9,7 @@ class Genus(LlmField):
     # --------------
     description: ClassVar[str] = """
         Extract the taxonomic genus of the specimen (e.g., 'Canis', 'Salix', 'Agoseris',
-        'Drosophila')
+        'Drosophila').
         """
     # --------------
 

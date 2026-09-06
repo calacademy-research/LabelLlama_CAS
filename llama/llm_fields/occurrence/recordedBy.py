@@ -9,7 +9,8 @@ from llama.llm_fields.llm_field import LlmField
 class RecordedBy(LlmField):
     # --------------
     description: ClassVar[str] = """
-        Extract the name of the person or group who collected or observed the specimen
+        Extract the collector or observer, often indicated by leg., coll., collected by,
+        or similar text.
         """
     # --------------
 
@@ -20,5 +21,7 @@ class RecordedBy(LlmField):
         self.recordedBy = self.to_str(self.recordedBy)
 
         # Remove the collector label
-        self.recordedBy = re.sub(r"^(collector|coll?)\b[.:,;]?\s+", "", self.recordedBy)
+        self.recordedBy = re.sub(
+            r"^(collector|coll?)\b[.:,;]?\s+", "", self.recordedBy, flags=re.IGNORECASE
+        )
         self.recordedBy = self.recordedBy.strip()

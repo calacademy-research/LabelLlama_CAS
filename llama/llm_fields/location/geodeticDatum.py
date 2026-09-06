@@ -8,12 +8,14 @@ from llama.llm_fields.llm_field import LlmField
 class GeodeticDatum(LlmField):
     # --------------
     description: ClassVar[str] = """
-        Extract the geodetic datum used for the latitude, longitude, TRS, or UTM
-        coordinates
+        Extract the coordinate datum explicitly associated with the location, such as
+        WGS84, NAD27, NAD83, or a named map datum. Do not infer a datum when it is not
+        stated.
         """
     # --------------
 
     geodeticDatum: str = ""
 
     def __post_init__(self, text: str) -> None:
+        self.geodeticDatum = self.clean_punct(self.geodeticDatum)
         self.geodeticDatum = self.hallucinated_str(self.geodeticDatum, text)

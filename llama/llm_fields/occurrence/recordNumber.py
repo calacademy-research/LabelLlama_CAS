@@ -11,8 +11,8 @@ SOURCE_THRESHOLD = 75.0
 class RecordNumber(LlmField):
     # --------------
     description: ClassVar[str] = """
-        Extract the record number — an identifier assigned to the occurrence at the time
-        it was recorded
+        Extract the collector number, field number, station number, or event number. Do
+        not use the catalog number.
         """
     # --------------
 
@@ -21,7 +21,9 @@ class RecordNumber(LlmField):
     def __post_init__(self, text: str) -> None:
         del text
         self.recordNumber = self.to_str(self.recordNumber)
-        self.recordNumber = re.sub(r"(#|Nº)", "", self.recordNumber)
+        self.recordNumber = re.sub(
+            r"(#|Nº|№|N.º|N°)", "", self.recordNumber, flags=re.IGNORECASE
+        )
 
         # Remove the label
         self.recordNumber = re.sub(

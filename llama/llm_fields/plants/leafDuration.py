@@ -8,12 +8,13 @@ from llama.llm_fields.llm_field import LlmField
 class LeafDuration(LlmField):
     # --------------
     description: ClassVar[str] = """
-        Extract the leaf duration (how long the plant retains its leaves through the
-        growing season and/or winter)
+        Extract leaf-duration terms such as evergreen, deciduous, semi-evergreen,
+        annual leaves, or persistent leaves when explicitly stated.
         """
     # --------------
 
     leafDuration: str = ""
 
     def __post_init__(self, text: str) -> None:
+        self.leafDuration = self.clean_punct(self.leafDuration)
         self.leafDuration = self.hallucinated_str(self.leafDuration, text)

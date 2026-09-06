@@ -254,18 +254,18 @@ class TestFixValues(unittest.TestCase):
 
     # ---------------------------------------------------------------------
     def test_remove_leading_punct_01(self) -> None:
-        assert self.fp.remove_leading_punct("[word]") == "word]"
+        assert self.fp.clean_punct("[word]") == "word"
 
     def test_remove_leading_punct_02(self) -> None:
-        assert self.fp.remove_leading_punct("['word']") == "word']"
+        assert self.fp.clean_punct("['word']") == "word"
 
     # ---------------------------------------------------------------------
     def test_remove_trailing_punct_01(self) -> None:
-        assert self.fp.remove_trailing_punct("['word']") == "['word"
+        assert self.fp.clean_punct("['word']") == "word"
 
     # ---------------------------------------------------------------------
     def test_clean_str_ends_01(self) -> None:
-        assert self.fp.clean_str_ends("['word']") == "word"
+        assert self.fp.clean_punct("['word']") == "word"
 
     # ---------------------------------------------------------------------
     def test_empty_noted_with_field_name_01(self) -> None:
@@ -287,3 +287,31 @@ class TestFixValues(unittest.TestCase):
     def test_empty_noted_with_field_name_05(self) -> None:
         lat = VerbatimLatitude(verbatimLatitude="hello")
         assert lat.verbatimLatitude == "hello"
+
+    # ---------------------------------------------------------------------
+    def test_normalize_decimal_comma_01(self) -> None:
+        assert self.fp.normalize_decimal_comma("45,5") == "45.5"
+
+    def test_normalize_decimal_comma_02(self) -> None:
+        assert self.fp.normalize_decimal_comma("4,5") == "4.5"
+
+    def test_normalize_decimal_comma_03(self) -> None:
+        assert self.fp.normalize_decimal_comma("-120,25") == "-120.25"
+
+    def test_normalize_decimal_comma_04(self) -> None:
+        # A trailing non-digit suffix (hemisphere, units) is preserved.
+        assert self.fp.normalize_decimal_comma("45,5 N") == "45.5 N"
+
+    def test_normalize_decimal_comma_05(self) -> None:
+        # A dot in the value means the comma is a thousands separator.
+        assert self.fp.normalize_decimal_comma("1,234.5") == "1,234.5"
+
+    def test_normalize_decimal_comma_06(self) -> None:
+        # Two commas are a thousands-separator chain; leave it alone.
+        assert self.fp.normalize_decimal_comma("1,234,567") == "1,234,567"
+
+    def test_normalize_decimal_comma_07(self) -> None:
+        assert self.fp.normalize_decimal_comma("45.5") == "45.5"
+
+    def test_normalize_decimal_comma_08(self) -> None:
+        assert self.fp.normalize_decimal_comma("") == ""

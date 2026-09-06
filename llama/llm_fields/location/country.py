@@ -9,7 +9,7 @@ class Country(LlmField):
     # --------------
     description: ClassVar[str] = """
         Extract the country where the specimen was collected. Return the full, standard
-        English country name
+        English country name.
         """
     # --------------
 
@@ -17,4 +17,5 @@ class Country(LlmField):
 
     def __post_init__(self, text: str) -> None:
         del text
+        self.country = self.to_str(self.country)
         self.country = self.title_with_exceptions(self.country)

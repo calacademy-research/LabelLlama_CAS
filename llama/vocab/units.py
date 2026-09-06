@@ -12,7 +12,7 @@ with UNITS_CSV.open() as f:
 UNITS = {u["pattern"]: u["replace"] for u in all_units}
 
 FACTOR_METER = {
-    u["pattern"]: float(u["factor_cm"]) * 100.0 or 0.0
+    u["pattern"]: float(u["factor_cm"]) / 100.0 or 0.0
     for u in all_units
     if u and u.get("pattern") and u.get("factor_cm")
 }

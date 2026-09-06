@@ -9,8 +9,9 @@ from llama.llm_fields.llm_field import LlmField
 class OccurrenceID(LlmField):
     # --------------
     description: ClassVar[str] = """
-        Extract the catalog number — the unique identifier for the specimen or record
-        within its collection or data set
+        Extract the globally unique occurrence identifier when explicitly present, such
+        as a UUID, URI, GUID, or occurrenceID. Do not use a plain catalog number unless
+        it is labeled as the occurrence ID.
         """
     # --------------
 
@@ -19,7 +20,9 @@ class OccurrenceID(LlmField):
     def __post_init__(self, text: str) -> None:
         del text
         self.occurrenceID = self.to_str(self.occurrenceID)
-        self.occurrenceID = re.sub(r"(#|Nº)", "", self.occurrenceID)
+        self.occurrenceID = re.sub(
+            r"(#|Nº|№|N.º|N°)", "", self.occurrenceID, flags=re.IGNORECASE
+        )
 
         # Remove the label
         self.occurrenceID = re.sub(
