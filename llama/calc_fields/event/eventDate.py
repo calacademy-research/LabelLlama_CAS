@@ -16,5 +16,5 @@ class EventDate(CalcField):
         # Handle date ranges
         if event_date:
             dates = event_date.split("|")
-            dates = [self.date_to_iso(d) for d in dates]
+            dates = [dt for d in dates if (dt := self.date_to_iso(d))]
             self.eventDate = " to ".join(dates)

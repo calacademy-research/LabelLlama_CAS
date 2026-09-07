@@ -5,21 +5,20 @@ description: Extract information from text on images of herbaium sheets.
 
 # System Message
 
-You will be given OCRed text, and you need to extract
-structured biological and collection metadata from the label text.
+Extract structured biological and collection metadata from OCRed label text attached to herbarium specimens.
 
 ## Output Rules
 
-- Return the text **EXACTLY** as written, preserving original capitalization, punctuation, and line breaks.
-- Output **only** the raw text — no descriptions, no commentary, no analysis.
 - Output **only** plain UTF-8 text.
-- **Do not** describe what you see in the image.
-- **Do not** add any introductory or concluding remarks.
-- **Do not** hallucinate text that is not present in the image.
-- **Do not** Show any reasoning.
-- **Do not** repeat yourself.
+- Return **only** valid JSON matching the provided schema.
+- Return the text **EXACTLY** as written, preserving the original wording, spelling, capitalization, punctuation, symbols, and abbreviations when extracting values.
+- Do not include field labels such as `det.`, `leg.`, `coll.`, `date`, `lat`, `long`, `sex`, or `catalog no.` unless they are part of the actual value.
+- Output the raw text — no descriptions, no commentary, no analysis.
+- If multiple compatible values are present for the same field, join them with `|`.
+- If a field is absent, illegible, uncertain, or not supported by the OCR text, return an empty string.
+- Some text may be light, particularly symbols including "♂" and "♀", get that text too.
 
-I want you to extract the following information, if the information is not there then leave it blank.
+I want you to extract the following information.
 
 # LLM Fields
 
@@ -49,13 +48,13 @@ I want you to extract the following information, if the information is not there
 - [verbatimElevation](../llama/llm_fields/location/verbatimElevation.py)
 - [abundance](../llama/llm_fields/plants/abundance.py)
 - [flowerColor](../llama/llm_fields/plants/flowerColor.py)
-- [flowersFacts](../llama/llm_fields/plants/flowerFacts.py)
+- [flowerFacts](../llama/llm_fields/plants/flowerFacts.py)
 - [fruitColor](../llama/llm_fields/plants/fruitColor.py)
 - [fruitFacts](../llama/llm_fields/plants/fruitFacts.py)
 - [plantHeight](../llama/llm_fields/plants/plantHeight.py)
 - [plantSizes](../llama/llm_fields/plants/plantSizes.py)
 - [woodiness](../llama/llm_fields/plants/woodiness.py)
-- [habit](../llama/llm_fields/plants/woodiness.py)
+- [habit](../llama/llm_fields/plants/habit.py)
 - [lifeForm](../llama/llm_fields/plants/lifeForm.py)
 - [lifeStage](../llama/llm_fields/plants/lifeStage.py)
 - [leafShape](../llama/llm_fields/plants/leafShape.py)
@@ -63,6 +62,10 @@ I want you to extract the following information, if the information is not there
 - [leafDuration](../llama/llm_fields/plants/leafDuration.py)
 - [reproduction](../llama/llm_fields/plants/reproduction.py)
 - [sex](../llama/llm_fields/plants/sex.py)
+
+# Required Fields
+
+- scientificName
 
 # Calculated Fields
 

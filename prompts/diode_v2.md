@@ -5,21 +5,20 @@ description: Extract information from labels on images of Odonata museum specime
 
 # System Message
 
-You will be given OCRed text, and you need to extract
-structured biological and collection metadata from the label text.
+Extract structured biological and collection metadata from OCRed labels attached to Odonata museum specimens.
 
 ## Output Rules
 
-- Return the text **EXACTLY** as written, preserving original capitalization, punctuation, and line breaks.
-- Output **only** the raw text — no descriptions, no commentary, no analysis.
 - Output **only** plain UTF-8 text.
-- **Do not** describe what you see in the image.
-- **Do not** add any introductory or concluding remarks.
-- **Do not** hallucinate text that is not present in the image.
-- **Do not** Show any reasoning.
-- **Do not** repeat yourself.
+- Return **only** valid JSON matching the provided schema.
+- Return the text **EXACTLY** as written, preserving the original wording, spelling, capitalization, punctuation, symbols, and abbreviations when extracting values.
+- **Do not** include field labels such as `det.`, `leg.`, `coll.`, `date`, `lat`, `long`, `sex`, or `catalog no.` unless they are part of the actual value.
+- Output the raw text — no descriptions, no commentary, no analysis.
+- If multiple compatible values are present for the same field, join them with `|`.
+- If a field is absent, illegible, uncertain, or not supported by the OCR text, return an empty string.
+- Some text may be light, particularly symbols including "♂" and "♀", get that text too.
 
-I want you to extract the following information, if the information is not there then leave it blank.
+I want you to extract the following information.
 
 # LLM Fields
 
@@ -48,6 +47,10 @@ I want you to extract the following information, if the information is not there
 - [waterBody](../llama/llm_fields/location/waterBody.py)
 - [habitat](../llama/llm_fields/event/habitat.py)
 - [occurrenceRemarks](../llama/llm_fields/occurrence/occurrenceRemarks.py)
+
+# Required Fields
+
+- scientificName
 
 # Calculated Fields
 

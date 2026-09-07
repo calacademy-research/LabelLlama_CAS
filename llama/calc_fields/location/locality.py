@@ -26,8 +26,9 @@ class Locality(CalcField):
                 self.locality = re.sub(pattern, "", self.locality, flags=re.IGNORECASE)
 
         self.locality = re.sub(
-            r"\b(co\.?|county)\b", "", self.locality, flags=re.IGNORECASE
+            r"\b(co|county)\b\.?", "", self.locality, flags=re.IGNORECASE
         )
+        self.locality = re.sub(r"\s+([,.])", r"\1", self.locality)
 
         self.locality = self.clean_punct(self.locality)
         self.locality = " ".join(self.locality.split())

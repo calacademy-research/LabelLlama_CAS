@@ -1,0 +1,38 @@
+import unittest
+
+from llama.calc_fields.plants.fruitPresent import FruitPresent
+
+
+class TestFruitPresent(unittest.TestCase):
+    def test_fruit_present_01(self) -> None:
+        rec = {"fruitColor": "red"}
+        assert FruitPresent(rec, "").fruitPresent is True
+
+    def test_fruit_present_02(self) -> None:
+        rec = {"fruitFacts": "drupe, ripens in fall"}
+        assert FruitPresent(rec, "").fruitPresent is True
+
+    def test_fruit_present_03(self) -> None:
+        rec = {}
+        assert FruitPresent(rec, "").fruitPresent == ""
+
+    def test_fruit_present_04(self) -> None:
+        assert FruitPresent(None, "").fruitPresent == ""
+
+    def test_fruit_present_05(self) -> None:
+        rec = {"fruitColor": "", "fruitFacts": ""}
+        assert FruitPresent(rec, "").fruitPresent == ""
+
+    def test_fruit_present_06(self) -> None:
+        # An already-affirmative value is left untouched
+        rec = {}
+        assert FruitPresent(rec, True).fruitPresent is True
+
+    def test_fruit_present_07(self) -> None:
+        # Evidence (a fruit color) overrides an explicit False
+        rec = {"fruitColor": "yellow"}
+        assert FruitPresent(rec, False).fruitPresent is True
+
+
+if __name__ == "__main__":
+    unittest.main()

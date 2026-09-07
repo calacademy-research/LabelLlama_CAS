@@ -17,7 +17,7 @@ from dateutil.relativedelta import relativedelta
 INT = re.compile(r"(?<!\d)-?\d[\d,]*")
 # A single optional decimal point; repeated separators like "1.2.3" no longer
 # match as one token (and float() is still guarded in str_to_float).
-FLOAT = re.compile(r"-?\d+(?:\.\d+)?|\.\d+")
+FLOAT = re.compile(r"(?<!\d)-?\d+(?:\.\d+)?|\.\d+")
 # A single comma with digits on both sides and no dot in the value is a
 # decimal comma (European convention): "45,5" means 45.5, not 455. A tail of
 # non-digit, non-dot characters (e.g. " N") is allowed and preserved.
@@ -284,8 +284,11 @@ class FixParses:
         if not short_date and bad_short_date:
             return ""
 
-        value = value.replace("april", "iv")  # The only month w/ roman numerals in it
+        # Dates with roman numerals in them
+        value = value.replace("april", "iv")
+        value = value.replace("november", "xi")
 
+        # replace roman numerals with month names
         value = value.replace("viii", "Aug")
         value = value.replace("iii", "Mar")
         value = value.replace("vii", "July")

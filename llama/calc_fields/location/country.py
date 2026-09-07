@@ -13,11 +13,10 @@ class Country(CalcField):
         """Make a blank country = USA if state or county is known to be in the US."""
         cleaned_rec = cleaned_rec or {}
 
-        self.country = USA.get(self.country, self.country)
+        self.country = USA.get(self.country.lower(), self.country)
         us_county = cleaned_rec.get("county", "")
         us_county = us_county.lower() in US_COUNTY
         us_state = cleaned_rec.get("stateProvince", "")
         us_state = us_state.lower() in US_STATE
         if not self.country and (us_county or us_state):
             self.country = "United States"
-        self.country = self.country

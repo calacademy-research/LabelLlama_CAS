@@ -9,7 +9,7 @@ class FruitPresent(CalcField):
     fruitPresent: bool | str = ""
 
     def __post_init__(self, cleaned_rec: dict[str, Any] | None) -> None:
-        """Set fruitPresent to True if there are fruit colors."""
+        """Set fruitPresent to True if there are fruit colors or facts."""
         cleaned_rec = cleaned_rec or {}
 
         if not self.fruitPresent and (
