@@ -24,12 +24,6 @@ class TestFruitColor(unittest.TestCase):
         # Trailing punctuation is removed once the value is matched in the text
         assert FruitColor("the fruit is blue.", "blue.").fruitColor == "blue"
 
-    def test_fruit_color_bug_01(self) -> None:
-        # BUG (red): trailing punctuation is stripped AFTER the hallucination
-        # check, so "blue," is searched (with the comma) and, not being found in
-        # "the fruit is blue", the whole value is dropped to "" instead of being
-        # cleaned to "blue".
-        #
-        # Suggested fix: remove the trailing punctuation BEFORE the
-        # hallucination check (see test_flowerColor for the exact change).
+    def test_fruit_color_bug_06(self) -> None:
+        # It removes trailing punctuation
         assert FruitColor("the fruit is blue", "blue,").fruitColor == "blue"

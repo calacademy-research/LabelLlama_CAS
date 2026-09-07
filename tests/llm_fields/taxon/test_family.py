@@ -18,7 +18,7 @@ class TestFamily(unittest.TestCase):
         assert Family("", None).family == ""
         assert Family("", 123).family == "123"
 
-    def test_score_01(self) -> None:
+    def test_score_04(self) -> None:
         # Family uses a custom scoring method
         assert Family.scoring_method == "CUST"
         # An exact match scores 1.0
@@ -27,21 +27,21 @@ class TestFamily(unittest.TestCase):
             == 1.0
         )
 
-    def test_score_02(self) -> None:
+    def test_score_05(self) -> None:
         # With an empty expectation, a family matching the genus's known
         # family scores 1.0
         assert Family.score("", "Rosaceae", {"scientificName": "Rosa gallica"}) == 1.0
 
-    def test_score_03(self) -> None:
+    def test_score_06(self) -> None:
         # With an empty expectation, a family that does not match the genus's
         # known family scores 0.0
         assert Family.score("", "Asteraceae", {"scientificName": "Rosa gallica"}) == 0.0
 
-    def test_score_04(self) -> None:
+    def test_score_07(self) -> None:
         # A genus not in the lookup table cannot earn the free 1.0
         assert Family.score("", "Rosaceae", {"scientificName": "Canis latrans"}) == 0.0
 
-    def test_score_05(self) -> None:
+    def test_score_08(self) -> None:
         # With a non-empty expectation, dissimilar values score below 1.0
         assert (
             0.0
@@ -51,6 +51,6 @@ class TestFamily(unittest.TestCase):
             < 1.0
         )
 
-    def test_score_06(self) -> None:
+    def test_score_09(self) -> None:
         # A missing scientificName falls back to edit distance (0.0 vs non-empty)
         assert Family.score("", "Rosaceae", {}) == 0.0

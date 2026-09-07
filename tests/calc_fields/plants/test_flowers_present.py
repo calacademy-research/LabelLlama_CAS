@@ -26,12 +26,12 @@ class TestFlowersPresent(unittest.TestCase):
     def test_flowers_present_06(self) -> None:
         # An already-affirmative value is left untouched
         rec = {}
-        assert FlowersPresent(rec, True).flowersPresent is True
+        assert FlowersPresent(rec, True).flowersPresent is True  # noqa: FBT003
 
     def test_flowers_present_07(self) -> None:
         # Evidence (a flower color) overrides an explicit False
         rec = {"flowerColor": "red"}
-        assert FlowersPresent(rec, False).flowersPresent is True
+        assert FlowersPresent(rec, False).flowersPresent is True  # noqa: FBT003
 
 
 if __name__ == "__main__":

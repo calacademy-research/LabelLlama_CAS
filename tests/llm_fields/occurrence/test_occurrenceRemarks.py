@@ -18,7 +18,9 @@ class TestOccurrenceRemarks(unittest.TestCase):
 
     def test_occurrence_remarks_03(self) -> None:
         # Whitespace is normalized to single spaces
-        assert OccurrenceRemarks("", "  spaced   out  ").occurrenceRemarks == "spaced out"
+        assert (
+            OccurrenceRemarks("", "  spaced   out  ").occurrenceRemarks == "spaced out"
+        )
 
     def test_occurrence_remarks_04(self) -> None:
         # A value that is only ID numbers is cleared
@@ -37,18 +39,18 @@ class TestOccurrenceRemarks(unittest.TestCase):
             == "Found near river 123"
         )
 
-    def test_score_01(self) -> None:
+    def test_score_07(self) -> None:
         assert OccurrenceRemarks.scoring_method == "FPR"
         assert OccurrenceRemarks.score("found near", "found near river", {}) == 1.0
 
-    def test_score_02(self) -> None:
+    def test_score_08(self) -> None:
         # Fuzzy partial ratio: expected contained in actual scores full
         assert (
             OccurrenceRemarks.score("found near", "a specimen found near river", {})
             == 1.0
         )
 
-    def test_score_03(self) -> None:
+    def test_score_09(self) -> None:
         # Dissimilar values score below 1.0
         score = OccurrenceRemarks.score("mangrove", "desert", {})
         assert 0.0 <= score < 1.0

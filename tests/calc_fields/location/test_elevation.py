@@ -19,7 +19,7 @@ class TestElevation(unittest.TestCase):
     def test_elevation_02(self) -> None:
         e = make_elevation("3000 ft")
         assert e.elevation == 3000.0
-        self.assertAlmostEqual(e.minimumElevationInMeters, 914.4)
+        self.assertAlmostEqual(e.minimumElevationInMeters, 914.4)  # noqa: PT009
         assert e.maximumElevationInMeters == ""
         assert e.elevationUnits == "ft"
 
@@ -56,15 +56,13 @@ class TestElevation(unittest.TestCase):
     def test_elevation_08(self) -> None:
         # Meters must come after miles in the vocab/terms/unit_terms.csv
         e = make_elevation("100 mi")
-        self.assertAlmostEqual(e.minimumElevationInMeters, 160934.4)
+        self.assertAlmostEqual(e.minimumElevationInMeters, 160934.4)  # noqa: PT009
         assert e.elevationUnits == "mi"
 
     def test_elevation_09(self) -> None:
-        # BUG: same root cause as test_elevation_08: "mm" is
-        # parsed as "m", so 100 mm is reported as 100 meters instead of 0.1.
-        # Same suggested fix (sort patterns longest first in units.py).
+        # Meters must come after millimeters in the vocab/terms/unit_terms.csv
         e = make_elevation("100 mm")
-        self.assertAlmostEqual(e.minimumElevationInMeters, 0.1)
+        self.assertAlmostEqual(e.minimumElevationInMeters, 0.1)  # noqa: PT009
         assert e.elevationUnits == "mm"
 
 

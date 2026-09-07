@@ -4,7 +4,7 @@ from pathlib import Path
 
 import yaml
 
-from llama.model_utils.field_action import FieldAction
+from llama.prompts.field_action import FieldAction
 
 FIELD_PROMPT_DIR = Path("prompts")
 
@@ -13,11 +13,11 @@ FIELD_PROMPT_DIR = Path("prompts")
 SYS_MSG = re.compile(r"^System\s+Message", flags=re.IGNORECASE)
 LLM_FIELDS = re.compile(r"^LLM\s+Fields", flags=re.IGNORECASE)
 CALC_FIELDS = re.compile(r"^Calculated\s+Fields", flags=re.IGNORECASE)
-JSON_SCHEMA = re.compile(r"```json(.*)```", flags=re.DOTALL)
+REQ_FIELDS = re.compile(r"^Required\s+Fields", flags=re.IGNORECASE)
 
 
 def get_front_yaml(text: str, path: Path) -> dict:
-    top = re.search("^---$.*^---$", text, flags=re.MULTILINE | re.DOTALL)
+    top = re.search("^---$.*?^---$", text, flags=re.MULTILINE | re.DOTALL)
     if not top:
         raise ValueError(f"Improperly formatted prompt file. {path}")
 
@@ -34,6 +34,7 @@ class PromptFileParser:
     json_schema: str = ""
     llm_fields: list[FieldAction] = field(default_factory=list[FieldAction])
     calc_fields: list[FieldAction] = field(default_factory=list[FieldAction])
+    req_fields: list[str] = field(default_factory=list)
 
     @classmethod
     def load(cls, prompt_path: Path) -> PromptFileParser:
@@ -46,7 +47,7 @@ class PromptFileParser:
         sections = re.split(r"^(?<!#)#\s", text, flags=re.MULTILINE)
 
         sys_msg, schema = "", ""
-        llm_fields, calc_fields = [], []
+        llm_fields, calc_fields, req_fields = [], [], []
 
         for section in sections:
             section = section.strip()
@@ -54,10 +55,6 @@ class PromptFileParser:
             # Get system prompt section
             if SYS_MSG.match(section):
                 sys_msg = SYS_MSG.sub("", section).strip()
-                match = JSON_SCHEMA.search(sys_msg)
-                if match:
-                    schema = match.group(1).strip()
-                sys_msg = sys_msg.replace("```json\n", "").replace("\n```", "")
 
             # Get output LLM fields list section
             elif LLM_FIELDS.match(section):
@@ -75,6 +72,14 @@ class PromptFileParser:
                     lnk = lnk.removeprefix("(").removesuffix(")")
                     calc_fields.append(FieldAction.load(lnk))
 
+            # Get required fields
+            elif REQ_FIELDS.match(section):
+                section = REQ_FIELDS.sub("", section).strip()
+                req_fields = [
+                    name
+                    for ln in section.splitlines()
+                    if (name := re.sub(r"^\s*\-\s*", "", ln).strip())
+                ]
         prompt = cls(
             name=front["name"],
             description=front["description"],
@@ -82,5 +87,6 @@ class PromptFileParser:
             json_schema=schema,
             llm_fields=llm_fields,
             calc_fields=calc_fields,
+            req_fields=req_fields,
         )
         return prompt

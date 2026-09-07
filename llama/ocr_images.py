@@ -1,45 +1,44 @@
 #!/usr/bin/env python3
 
 import argparse
-import base64
 import csv
 import logging
 import textwrap
-from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
 
-import requests
+from dotenv import load_dotenv
+from requests.exceptions import RequestException
 from tqdm import tqdm
 
-from llama.model_utils import model_util
-from llama.model_utils.model_args import OcrArgs
-from llama.model_utils.model_prompts import OcrPrompt
-from llama.model_utils.model_status import ModelStatus
-from llama.model_utils.ocr_docs import OcrDocs
-from llama.pylib import fix_ocr, log
+from llama.prompts.base_prompt import Thinking
+from llama.prompts.ocr_prompt import OcrPrompt
+from llama.pylib import fix_ocr, image_util, log
+from llama.pylib.thread_sessions import ThreadSessions
+from llama.results.model_status import ModelStatus, StatusCounts
+from llama.results.ocr_docs import OcrDocs
+from llama.results.task_writer import TaskWriter
 
 
 def ocr_images(args: argparse.Namespace) -> None:
     job_began = log.job_began(args.log_file, args=args)
 
-    docs = OcrDocs.build(args.image_dir, args.image_glob, args.ocr_file, args.limit)
+    docs = OcrDocs.build(
+        args.image_dir, args.image_glob, args.ocr_file, args.input_file, args.limit
+    )
 
-    model_util.log_what_to_do(docs, "images")
+    logging.info(f"There are {docs.input_len} images to process")
+    logging.info(f"{len(docs.already_done)} images were already done.")
+    if docs.limit:
+        logging.info(f"Limited to {docs.limit} images.")
+    logging.info(f"There are {len(docs.tasks)} images left to process.")
 
     prompt = OcrPrompt.load(args.prompt)
 
-    statuses = defaultdict(int)
+    statuses = StatusCounts()
 
-    model_args = OcrArgs(
-        prompt=prompt,
-        api_host=args.api_host,
-        model_id=args.model_id,
-        temperature=args.temperature,
-        max_tokens=args.max_tokens,
-        timeout=args.timeout,
-    )
+    args.ocr_file.parent.mkdir(parents=True, exist_ok=True)
 
     with args.ocr_file.open(docs.file_mode) as output_file:
         writer = csv.DictWriter(output_file, prompt.columns)
@@ -49,52 +48,55 @@ def ocr_images(args: argparse.Namespace) -> None:
         with (
             tqdm(total=len(docs.tasks)) as pbar,
             ThreadPoolExecutor(max_workers=args.threads) as executor,
-            requests.Session() as session,
         ):
-            model_util.init_session_pool(session, args.threads)
+            sessions = ThreadSessions()
+            task_writer = TaskWriter(
+                writer=writer,
+                out_file=output_file,
+                statuses=statuses,
+                progress_bar=pbar,
+            )
 
-            futures = [
-                executor.submit(call_model, model_args, image_path, session)
-                for image_path in docs.tasks
-            ]
+            futures = {
+                executor.submit(
+                    call_model, prompt, source, sessions, args.api_host, args.timeout
+                ): source
+                for source in docs.tasks
+            }
 
-            for future in as_completed(futures):
-                model_util.complete_task(writer, future, output_file, statuses, pbar)
+            try:
+                for future in as_completed(futures):
+                    task_writer.write(future, source=futures[future])
+            finally:
+                sessions.close_all()
 
-    model_util.log_what_was_done(docs, "images", statuses)
+    logging.info(
+        f"Total {len(docs.tasks)} images processed "
+        f"with {statuses.get(ModelStatus.ERROR)} errors "
+        f"and {len(docs.already_done)} images skipped."
+    )
     log.job_elapsed(job_began)
 
 
-def call_model(args: OcrArgs, image_path: Path, session: requests.Session) -> dict:
+def call_model(
+    prompt: OcrPrompt,
+    source: Path | str,
+    sessions: ThreadSessions,
+    api_host: str,
+    timeout: int,
+) -> dict:
     began = datetime.now()
 
-    with image_path.open("rb") as f:
-        base64_image = base64.b64encode(f.read()).decode("utf-8")
-
-    url = f"{args.api_host}/chat/completions"
-    headers = {"Content-Type": "application/json"}
-    payload = {
-        "model": args.model_id,
-        "messages": [
-            {"role": "system", "content": args.prompt.system_msg},
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/jpeg;base64,{base64_image}",
-                        },
-                    },
-                ],
-            },
-        ],
-    }
-    model_util.add_payload_args(args, payload)
-
     try:
+        base64_image, mime_type = image_util.load_image(source, timeout)
+
+        session = sessions.get()
+
         response = session.post(
-            url, headers=headers, json=payload, timeout=args.timeout
+            f"{api_host}/chat/completions",
+            headers=prompt.headers(),
+            json=prompt.payload(mime_type, base64_image),
+            timeout=timeout,
         )
         response.raise_for_status()
         result = response.json()
@@ -104,14 +106,21 @@ def call_model(args: OcrArgs, image_path: Path, session: requests.Session) -> di
         text = fix_ocr.clean_ocr(content)
         status = ModelStatus.SUCCESS
 
-    except requests.exceptions.RequestException as err:
-        logging.exception(f"OCR error for: {image_path.name}")
+    except (
+        IndexError,
+        KeyError,
+        OSError,
+        RequestException,
+        TypeError,
+        ValueError,
+    ) as err:
+        logging.exception(f"OCR error for: {source}")
         text = str(err)
         status = ModelStatus.ERROR
 
     result = {
         "status": status,
-        "source": str(image_path),
+        "source": str(source),
         "elapsed": str(log.task_elapsed(began)),
         "text": text,
     }
@@ -127,6 +136,7 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     io_group = arg_parser.add_argument_group("I/O options")
     io_group.add_argument(
         "--image-dir",
+        type=Path,
         metavar="PATH",
         help="""OCR all images in this directory.""",
     )
@@ -135,6 +145,15 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         metavar="GLOB",
         help="""Get all images matching this glob/pattern. You will need to quote this
             argument. An example: 'museum/data/images1/*.jpg'""",
+    )
+    io_group.add_argument(
+        "--input-file",
+        type=Path,
+        metavar="PATH",
+        help="""Read a list of image sources (local paths and/or http(s) URLs)
+            from this file, one source per line. Blank lines and lines starting
+            with '#' are ignored. Can be combined with --image-dir /
+            --image-glob, or used on its own.""",
     )
     io_group.add_argument(
         "--ocr-file",
@@ -153,25 +172,22 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
             (default: %(default)s)""",
     )
     model_group = arg_parser.add_argument_group("model options")
-    model_defaults = OcrArgs(OcrPrompt())
     model_group.add_argument(
         "--model-id",
-        default=model_defaults.model_id,
+        default="unsloth/gemma-4-E4B-it-GGUF:Q8_K_XL",
         metavar="STRING",
         help="""Use this language model. (default: %(default)s)""",
     )
     model_group.add_argument(
         "--api-host",
-        default=model_defaults.api_host,
+        default="http://localhost:9931/v1",
         metavar="STRING",
-        help="""URL for the language model. (default: %(default)s)
-            The default is for LM-Studio, but you could use Ollama's or another
-            URL here.""",
+        help="""URL for the language model. (default: %(default)s)""",
     )
     model_group.add_argument(
         "--threads",
         type=int,
-        default=model_defaults.threads,
+        default=2,
         metavar="INT",
         help="""How many parallel threads to run. (default: %(default)s)
             Increase this if the model server is powerful enough.""",
@@ -179,27 +195,29 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     model_group.add_argument(
         "--temperature",
         type=float,
-        default=model_defaults.temperature,
         metavar="FLOAT",
-        help="""Model's temperature. (default: %(default)s)
-            We don't want the model to get creative, so keep this value low.""",
+        help="""Model's temperature.""",
     )
     model_group.add_argument(
         "--max-tokens",
         type=int,
-        default=model_defaults.max_tokens,
+        default=2048,
         metavar="INT",
-        help="""The OCR model's response maximum tokens. (default: %(default)s)
-            2048 tokens is roughly 1.5K words, which is more than enough for most
-            museum specimens. I keep this low to truncate model loops.""",
+        help="""The OCR model's response maximum tokens. (default: %(default)s)""",
     )
     model_group.add_argument(
         "--timeout",
         type=int,
-        default=model_defaults.timeout,
+        default=120,
         metavar="INT",
         help="""How long to wait for the OCR model to complete in seconds.
             (default: %(default)s) 2 minutes is a life time for OCR.""",
+    )
+    model_group.add_argument(
+        "--thinking",
+        type=Thinking,
+        default=Thinking.DISABLE_TEMPLATE,
+        help="""How to handle model thinking. (default: %(default)s)""",
     )
     logging_group = arg_parser.add_argument_group("logging options")
     logging_group.add_argument(
@@ -222,9 +240,16 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         help="""Only OCR this many images.""",
     )
     ns: argparse.Namespace = arg_parser.parse_args(args)
+    if not ns.image_dir and not ns.image_glob and not ns.input_file:
+        arg_parser.error(
+            "one of --image-dir, --image-glob, or --input-file is required"
+        )
+    if ns.image_dir and not ns.image_dir.is_dir():
+        arg_parser.error(f"--image-dir is not a directory: {ns.image_dir}")
     return ns
 
 
 if __name__ == "__main__":
+    load_dotenv()
     ARGS = parse_args()
     ocr_images(ARGS)

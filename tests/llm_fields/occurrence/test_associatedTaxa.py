@@ -20,11 +20,16 @@ class TestAssociatedTaxa(unittest.TestCase):
 
     def test_associated_taxa_04(self) -> None:
         # Whitespace is normalized to single spaces
-        assert AssociatedTaxa("", "  multiple   spaces  ").associatedTaxa == "multiple spaces"
+        assert (
+            AssociatedTaxa("", "  multiple   spaces  ").associatedTaxa
+            == "multiple spaces"
+        )
 
     def test_associated_taxa_05(self) -> None:
         # Multiple taxa separated by punctuation are kept together
-        assert AssociatedTaxa("", "Taxon A; Taxon B").associatedTaxa == "Taxon A; Taxon B"
+        assert (
+            AssociatedTaxa("", "Taxon A; Taxon B").associatedTaxa == "Taxon A; Taxon B"
+        )
 
     def test_associated_taxa_06(self) -> None:
         # Empty input and empty-value notations stay empty

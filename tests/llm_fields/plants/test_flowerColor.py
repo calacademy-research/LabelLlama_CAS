@@ -24,20 +24,10 @@ class TestFlowerColor(unittest.TestCase):
         # Trailing punctuation is removed once the value is matched in the text
         assert FlowerColor("the flowers are red.", "red.").flowerColor == "red"
 
-    def test_flower_color_bug_01(self) -> None:
-        # BUG (red): trailing punctuation is stripped AFTER the hallucination
-        # check. The check searches for the literal value including its trailing
-        # comma, so "red," is not found in "the flowers are red" and the whole
-        # value is dropped to "" instead of being cleaned to "red".
-        #
-        # Suggested fix: remove the trailing punctuation BEFORE the
-        # hallucination check:
-        #     self.flowerColor = self.to_str(self.flowerColor)
-        #     self.flowerColor = self.clean_punct(self.flowerColor)
-        #     self.flowerColor = self.hallucinated_str(self.flowerColor, text)
+    def test_flower_color_bug_06(self) -> None:
+        # Trailing punctuation is removed
         assert FlowerColor("the flowers are red", "red,").flowerColor == "red"
 
-    def test_flower_color_bug_02(self) -> None:
-        # BUG (red): same ordering flaw with a trailing period that the text
-        # does not contain.
+    def test_flower_color_bug_07(self) -> None:
+        # It removes trailing punctuation
         assert FlowerColor("the flowers are red", "red.").flowerColor == "red"

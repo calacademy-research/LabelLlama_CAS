@@ -34,15 +34,15 @@ class TestHabitat(unittest.TestCase):
         assert Habitat("", "not present").habitat == ""
         assert Habitat("", float("nan")).habitat == ""
 
-    def test_score_01(self) -> None:
+    def test_score_07(self) -> None:
         assert Habitat.scoring_method == "FPR"
         assert Habitat.score("forest", "forest", {}) == 1.0
 
-    def test_score_02(self) -> None:
+    def test_score_08(self) -> None:
         # Fuzzy partial ratio: expected contained in actual scores full
         assert Habitat.score("forest", "a forest area", {}) == 1.0
 
-    def test_score_03(self) -> None:
+    def test_score_09(self) -> None:
         # Dissimilar values score below 1.0
         score = Habitat.score("mangrove", "desert", {})
         assert 0.0 <= score < 1.0

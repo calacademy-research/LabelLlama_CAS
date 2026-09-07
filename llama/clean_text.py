@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 
 import argparse
+import logging
 import textwrap
 from pathlib import Path
 
 import pandas as pd
 from tqdm import tqdm
 
-from llama.model_utils.model_status import ModelStatus
-from llama.model_utils.parser_cleaner import ParserCleaner
+from llama.prompts.base_prompt import Thinking
+from llama.prompts.parser_cleaner import ParserCleaner
+from llama.prompts.parser_prompt import ParserPrompt
 from llama.pylib import log
+from llama.results.model_status import ModelStatus
 
 
 def postprocess_fields(args: argparse.Namespace) -> None:
@@ -17,10 +20,19 @@ def postprocess_fields(args: argparse.Namespace) -> None:
 
     df = pd.read_csv(args.parsed_file, dtype=str).fillna("")
 
-    cleaner = ParserCleaner.load(args.prompt)
+    prompt = ParserPrompt(
+        prompt=args.prompt,
+        model_id="",
+        temperature=None,
+        max_tokens=None,
+        thinking=Thinking.USE_SERVER,
+    )
+    cleaner = ParserCleaner.load(prompt)
+    cleaner.validate_columns(df.columns, prompt)
 
-    columns = [c for c in df.columns if c in cleaner.llm_field_classes]
-    calc_columns = list(cleaner.calc_field_classes)
+    llm_columns = cleaner.get_llm_columns(df.columns)
+    calc_columns = cleaner.get_calc_columns()
+    output_columns = cleaner.get_output_columns()
 
     input_rows = [
         r for r in df.to_dict("records") if r["status"] == ModelStatus.SUCCESS
@@ -28,36 +40,51 @@ def postprocess_fields(args: argparse.Namespace) -> None:
     input_rows = input_rows[: args.limit]
 
     output_rows = []
+    failed: list[str] = []
 
     for in_row in tqdm(input_rows):
-        out_row = {"source": in_row["source"], "text": in_row["text"]}
+        try:
+            out_row = {"source": in_row["source"], "text": in_row["text"]}
 
-        for column in columns:
-            field_action = cleaner.llm_field_classes[column]
+            for column in llm_columns:
+                field_action = cleaner.llm_field_classes[column]
 
-            in_data = {k: in_row.get(k) for k in field_action.get_field_names()}
+                in_data = {k: in_row.get(k) for k in field_action.get_field_names()}
 
-            out_field = field_action(**in_data)
-            out_data = {
-                k: getattr(out_field, k) for k in out_field.get_visible_fields()
-            }
-            out_row |= out_data
+                out_field = field_action(text=in_row.get("text", ""), **in_data)
+                out_data = {
+                    k: getattr(out_field, k) for k in out_field.get_visible_fields()
+                }
+                out_row |= out_data
 
-        for column in calc_columns:
-            field_action = cleaner.calc_field_classes[column]
+            for column in calc_columns:
+                field_action = cleaner.calc_field_classes[column]
 
-            in_data = {k: in_row.get(k) for k in field_action.get_field_names()}
+                in_data = {k: in_row.get(k) for k in field_action.get_field_names()}
 
-            out_field = field_action(out_row, **in_data)
-            out_data = {
-                k: getattr(out_field, k) for k in out_field.get_visible_fields()
-            }
-            out_row |= out_data
+                out_field = field_action(out_row, **in_data)
+                out_data = {
+                    k: getattr(out_field, k) for k in out_field.get_visible_fields()
+                }
+                out_row |= out_data
 
-        output_rows.append(out_row)
+            output_rows.append(out_row)
+        except Exception:
+            name = Path(in_row["source"]).name
+            failed.append(name)
+            logging.exception(f"Clean error for: {name}")
 
-    df = pd.DataFrame(output_rows)
+    df = pd.DataFrame(output_rows, columns=output_columns)
+    args.clean_file.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(args.clean_file, index=False)
+
+    # Good rows are still written out; but a silent partial output is worse
+    # than a non-zero exit, so report the failures and fail the job.
+    if failed:
+        names = ", ".join(failed)
+        msg = f"Clean failed for {len(failed)} documents: {names}"
+        logging.error(msg)
+        raise SystemExit(1)
 
     log.job_elapsed(job_began)
 

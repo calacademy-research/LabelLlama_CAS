@@ -28,8 +28,8 @@ from pathlib import Path
 import pandas as pd
 
 from llama.llm_fields.llm_field import LlmField
-from llama.model_utils.model_prompts import FIRST_COLUMNS
-from llama.model_utils.parser_cleaner import ParserCleaner
+from llama.prompts.ocr_prompt import FIRST_COLUMNS
+from llama.prompts.parser_cleaner import ParserCleaner
 from llama.pylib import log
 
 

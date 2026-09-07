@@ -27,10 +27,7 @@ class TestCountry(unittest.TestCase):
         assert Country({}, "usa").country == "USA"
 
     def test_country_07(self) -> None:
-        # BUG: USA dict keys are lowercase but the lookup is not lowered, so
-        # "U.S.A." is left as-is instead of being normalized to "USA".
-        # Suggested fix in country.py:
-        #     self.country = USA.get(self.country.lower(), self.country)
+        # Test the lookup lowers text before a search
         assert Country({}, "U.S.A.").country == "USA"
 
 
