@@ -14,9 +14,7 @@ class TestFlowerFacts(unittest.TestCase):
 
     def test_flower_facts_03(self) -> None:
         # Multiple items are reduced to the list's string form
-        assert (
-            FlowerFacts("", ["white", "scented"]).flowerFacts == "['white', 'scented']"
-        )
+        assert FlowerFacts("", ["white", "scented"]).flowerFacts == "white, scented"
 
     def test_flower_facts_04(self) -> None:
         # Empty input becomes an empty string
@@ -29,7 +27,4 @@ class TestFlowerFacts(unittest.TestCase):
 
     def test_flower_facts_06(self) -> None:
         # Empty items within a list are dropped
-        assert (
-            FlowerFacts("", ["white", "", "scented"]).flowerFacts
-            == "['white', 'scented']"
-        )
+        assert FlowerFacts("", ["white", "", "scented"]).flowerFacts == "white, scented"

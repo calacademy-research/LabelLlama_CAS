@@ -14,7 +14,7 @@ class TestFruitFacts(unittest.TestCase):
 
     def test_fruit_facts_03(self) -> None:
         # Multiple items are reduced to the list's string form
-        assert FruitFacts("", ["red", "round"]).fruitFacts == "['red', 'round']"
+        assert FruitFacts("", ["red", "round"]).fruitFacts == "red, round"
 
     def test_fruit_facts_04(self) -> None:
         # Empty input becomes an empty string

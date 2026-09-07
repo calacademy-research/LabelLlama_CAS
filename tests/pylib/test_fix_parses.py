@@ -4,7 +4,7 @@ from llama.llm_fields.location.verbatimLatitude import VerbatimLatitude
 from llama.pylib.fix_parses import FixParses
 
 
-class TestFixValues(unittest.TestCase):
+class TestFixParses(unittest.TestCase):
     def setUp(self) -> None:
         self.fp = FixParses()
 

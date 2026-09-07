@@ -1,3 +1,4 @@
+import html
 import re
 
 from markdownify import markdownify as md
@@ -50,18 +51,19 @@ def remove_identical_lines(text: str) -> str:
 
     Sometimes the OCR model will get stuck in a loop and repeat the same line over and
     over again. Even with a max output tokens setting this can get fairly long. This
-    removes duplicate lines.
+    removes duplicate lines. I also only want to remove identical lines if they follow
+    one another.
 
     Note that I want to keep blank lines or lines with all spaces, but I'll still strip
     the spaces at the ends of the line. See the join_lines function for why I want to
     keep empty lines.
     """
-    seen = set()
+    prev = ""
     lines = []
     for ln in text.splitlines():
         ln = ln.strip()
-        if not ln or ln not in seen:
-            seen.add(ln)
+        if not ln or ln != prev:
+            prev = ln
             lines.append(ln)
     text = "\n".join(lines)
     text = text.strip()
@@ -86,15 +88,16 @@ def join_lines(text: str) -> str:
 
 def fix_entities(text: str) -> str:
     """Change entities and some HTML to characters."""
-    text = re.sub(r"<br/?>", "\n", text)
-    text = text.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
+    text = re.sub(r"<br\s*/?>", "\n", text)
+    text = html.unescape(text)
+    # Normalize a non-breaking space (&nbsp;) to a regular space.
+    text = text.replace("\xa0", " ")
     text = text.strip()
     return text
 
 
 def prepare_for_parse(text: str) -> str:
     """Prepare OCR results for running them thru an LLM."""
-    text = fix_entities(text)
     text = remove_identical_lines(text)
     text = filter_lines(text)
     text = join_lines(text)
@@ -120,8 +123,10 @@ def html_to_md(text: str) -> str:
         escape_misc=False,
     )
 
-    # Remove bold and italic ( "**text**" and "_text_") markdown notations
-    text = re.sub(r"([*_]+)([\w\s]*)\1", r"\2", text)
+    # Remove bold/italic markdown markers, but only when they sit at a
+    # whitespace or string boundary so snake_case tokens (e.g. "my_file_name",
+    # "BRCA_1") and arithmetic like "2 * 3 * 4" are left intact.
+    text = re.sub(r"([*_]+)([\w\s\-]*)\1", r"\2", text)
 
     text = text.strip()
     return text

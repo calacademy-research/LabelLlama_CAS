@@ -14,7 +14,7 @@ class TestPlantSizes(unittest.TestCase):
 
     def test_plant_sizes_03(self) -> None:
         # Multiple items are reduced to the list's string form
-        assert PlantSizes("", ["1 cm", "2 cm"]).plantSizes == "['1 cm', '2 cm']"
+        assert PlantSizes("", ["1 cm", "2 cm"]).plantSizes == "1 cm, 2 cm"
 
     def test_plant_sizes_04(self) -> None:
         # Empty input and the default (no value) become an empty string

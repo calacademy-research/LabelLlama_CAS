@@ -175,6 +175,7 @@ class FixParses:
 
         match value:
             case str():
+                value = re.sub(r"\d+(?:\.\d+){2,}", " ", value)
                 value = re.sub(r",", "", value)
                 return [
                     f
@@ -266,6 +267,10 @@ class FixParses:
         return value
 
     def date_to_iso(self, value: str) -> str:
+        # Year only
+        if re.fullmatch(r"[12]\d{3}", value):
+            return value
+
         value = value.lower().strip()
 
         short_date = re.match(
@@ -342,7 +347,7 @@ class FixParses:
             return ""
         if len(value) == 1:
             return value[0]
-        return str(value)
+        return ", ".join(str(v) for v in value)
 
     def hallucinated_str(self, value: str, text: str) -> str:
         value = self.to_str(value)
