@@ -1,6 +1,6 @@
 import threading
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from llama.pylib.thread_sessions import ThreadSessions
 
@@ -53,9 +53,7 @@ class TestThreadSessions(unittest.TestCase):
             with lock:
                 seen.append(local_sessions)
 
-        threads = [
-            threading.Thread(target=worker) for _ in range(n_threads)
-        ]
+        threads = [threading.Thread(target=worker) for _ in range(n_threads)]
         for t in threads:
             t.start()
         for t in threads:

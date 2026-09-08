@@ -2,6 +2,7 @@ import unittest
 from pathlib import Path
 
 from llama.calc_fields.event.eventDate import EventDate
+from llama.calc_fields.location.elevation import Elevation
 from llama.llm_fields.location.utm import Utm
 from llama.llm_fields.taxon.scientificName import ScientificName
 from llama.prompts.field_action import FieldAction
@@ -51,8 +52,6 @@ class TestFieldActionLoad(unittest.TestCase):
 
     def test_multi_column_calc_field_06(self) -> None:
         # A field class with several columns reports them all
-        from llama.calc_fields.location.elevation import Elevation
-
         action = FieldAction("../llama/calc_fields/location/elevation.py")
 
         assert action.field_class is Elevation

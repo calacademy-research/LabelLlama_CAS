@@ -67,7 +67,6 @@ class TestOcrDocs(unittest.TestCase):
         with self.assertRaises(ValueError):
             read_results_csv(path, "OCR file")
 
-
     def tearDown(self) -> None:
         self._tmp.cleanup()
 

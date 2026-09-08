@@ -55,9 +55,9 @@ def done_future(result: dict) -> Future[dict]:
     return future
 
 
-def failing_future(err: Exception = RuntimeError("boom")) -> Future[dict]:
+def failing_future(err: Exception | None = None) -> Future[dict]:
     future: Future[dict] = Future()
-    future.set_exception(err)
+    future.set_exception(err if err is not None else RuntimeError("boom"))
     return future
 
 
@@ -109,7 +109,7 @@ class TestTaskWriter(unittest.TestCase):
 
     def test_missing_required_field_is_error_04(self) -> None:
         # Parse writer: a required LLM field left empty is an error row
-        columns = FIRST_COLUMNS + ["scientificName"]
+        columns = [*FIRST_COLUMNS, "scientificName"]
         prompt = make_prompt(columns=columns, req_fields=["scientificName"])
         tw, out = make_task_writer(columns, prompt=prompt)
         tw.write(
@@ -140,7 +140,7 @@ class TestTaskWriter(unittest.TestCase):
     def test_empty_llm_output_long_text_is_error_06(self) -> None:
         # Parse writer with LLM columns and a long input text:
         # an empty extraction is an error, not a success row
-        columns = FIRST_COLUMNS + ["scientificName"]
+        columns = [*FIRST_COLUMNS, "scientificName"]
         prompt = make_prompt(columns=columns)
         tw, out = make_task_writer(columns, prompt=prompt)
         tw.write(
@@ -156,7 +156,7 @@ class TestTaskWriter(unittest.TestCase):
 
     def test_check_skipped_for_short_text_07(self) -> None:
         # A short input can legitimately yield nothing: keep it a success
-        columns = FIRST_COLUMNS + ["scientificName"]
+        columns = [*FIRST_COLUMNS, "scientificName"]
         prompt = make_prompt(columns=columns)
         tw, out = make_task_writer(columns, prompt=prompt)
         tw.write(
@@ -171,7 +171,7 @@ class TestTaskWriter(unittest.TestCase):
 
     def test_check_applies_at_min_text_len_08(self) -> None:
         # Boundary: text of exactly MIN_TEXT_LEN is long enough
-        columns = FIRST_COLUMNS + ["scientificName"]
+        columns = [*FIRST_COLUMNS, "scientificName"]
         prompt = make_prompt(columns=columns)
         tw, out = make_task_writer(columns, prompt=prompt)
         tw.write(
@@ -216,7 +216,7 @@ class TestTaskWriter(unittest.TestCase):
     def test_missing_llm_key_written_as_empty_11(self) -> None:
         # A result lacking an LLM column key is written with an empty
         # value, not dropped
-        columns = FIRST_COLUMNS + ["scientificName"]
+        columns = [*FIRST_COLUMNS, "scientificName"]
         prompt = make_prompt(columns=columns)
         tw, out = make_task_writer(columns, prompt=prompt)
         tw.write(

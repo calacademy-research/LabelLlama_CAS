@@ -39,7 +39,6 @@ class TestModelStatus(unittest.TestCase):
         assert not ModelStatus.is_success("")
         assert not ModelStatus.is_success(None)
 
-
     def test_count_normalizes_and_increments_07(self) -> None:
         counts = StatusCounts()
 

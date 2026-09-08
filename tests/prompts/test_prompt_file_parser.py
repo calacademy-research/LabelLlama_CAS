@@ -1,3 +1,4 @@
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -9,12 +10,10 @@ PROMPTS_DIR = Path(__file__).resolve().parents[2] / "prompts"
 
 def write_prompt(text: str) -> Path:
     # Prompt files are parsed by path; use a temp file for synthetic ones
-    tmp = tempfile.NamedTemporaryFile(
-        "w", suffix=".md", delete=False, encoding="utf-8"
-    )
-    tmp.write(text)
-    tmp.close()
-    return Path(tmp.name)
+    fd, name = tempfile.mkstemp(suffix=".md", text=True)
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write(text)
+    return Path(name)
 
 
 class TestPromptFileParser(unittest.TestCase):
@@ -48,7 +47,6 @@ class TestPromptFileParser(unittest.TestCase):
         with self.assertRaises(ValueError):
             get_front_yaml("---\nname: ocr\n", Path("x.md"))
 
-
     def test_ocr_v2_sections_04(self) -> None:
         parser = PromptFileParser(PROMPTS_DIR / "ocr_v2.md")
 
@@ -80,9 +78,7 @@ class TestPromptFileParser(unittest.TestCase):
 
     def test_minimal_prompt_defaults_06(self) -> None:
         path = write_prompt(
-            "---\nname: t\ndescription: d\n---\n"
-            "# System Message\n"
-            "The body.\n"
+            "---\nname: t\ndescription: d\n---\n# System Message\nThe body.\n"
         )
         self.addCleanup(path.unlink, missing_ok=True)
 
@@ -121,9 +117,7 @@ class TestPromptFileParser(unittest.TestCase):
 
     def test_headings_are_case_insensitive_08(self) -> None:
         path = write_prompt(
-            "---\nname: t\ndescription: d\n---\n"
-            "# system message\n"
-            "The body.\n"
+            "---\nname: t\ndescription: d\n---\n# system message\nThe body.\n"
         )
         self.addCleanup(path.unlink, missing_ok=True)
 

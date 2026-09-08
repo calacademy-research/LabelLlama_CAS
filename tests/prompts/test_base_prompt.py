@@ -13,10 +13,9 @@ class TestBasePrompt(unittest.TestCase):
         assert Thinking("disable arg") is Thinking.DISABLE_ARG
 
     def test_equality_with_plain_strings_02(self) -> None:
-        assert "use server" == Thinking.USE_SERVER
-        assert "disable template" == Thinking.DISABLE_TEMPLATE
-        assert "disable arg" == Thinking.DISABLE_ARG
-
+        assert Thinking.USE_SERVER == "use server"
+        assert Thinking.DISABLE_TEMPLATE == "disable template"
+        assert Thinking.DISABLE_ARG == "disable arg"
 
     def test_field_defaults_03(self) -> None:
         prompt = BasePrompt()
@@ -50,7 +49,6 @@ class TestBasePrompt(unittest.TestCase):
         assert empty.base_headers == {}
         assert empty.base_payload == {}
 
-
     def test_headers_returns_base_headers_06(self) -> None:
         prompt = BasePrompt(base_headers={"X-Custom": "1"})
 
@@ -67,7 +65,6 @@ class TestBasePrompt(unittest.TestCase):
 
         assert head["Content-Type"] == "application/json"
         assert head["Authorization"] == "Bearer secret-key"
-
 
     def test_no_kwargs_gives_empty_payload_09(self) -> None:
         assert BasePrompt()._payload_args() == {}

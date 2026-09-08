@@ -12,7 +12,9 @@ PROMPTS_DIR = Path(__file__).resolve().parents[2] / "prompts"
 DIODE = PROMPTS_DIR / "diode_one_v1.md"
 
 
-def make_stub_parser(llm_fields, req_fields=None) -> SimpleNamespace:
+def make_stub_parser(
+    llm_fields: list[object], req_fields: list[str] | None = None
+) -> SimpleNamespace:
     return SimpleNamespace(
         name="stub",
         description="stub description",
@@ -86,12 +88,14 @@ class TestParserPrompt(unittest.TestCase):
     def test_init_rejects_clashing_field_07(self) -> None:
         # An LLM field named after a reserved column must fail at load time
         stub = make_stub_parser([SimpleNamespace(name="text", field_class=None)])
-        with patch(
-            "llama.prompts.parser_prompt.PromptFileParser",
-            return_value=stub,
+        with (
+            patch(
+                "llama.prompts.parser_prompt.PromptFileParser",
+                return_value=stub,
+            ),
+            self.assertRaises(ValueError) as ctx,
         ):
-            with self.assertRaises(ValueError) as ctx:
-                ParserPrompt(prompt=DIODE, model_id="model")
+            ParserPrompt(prompt=DIODE, model_id="model")
 
         assert "text" in str(ctx.exception)
 

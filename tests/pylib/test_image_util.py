@@ -56,7 +56,7 @@ class TestImageUtil(unittest.TestCase):
 
     def test_get_images_dedupes_and_sorts_04(self) -> None:
         # image_glob is CWD-relative, so run from inside the temp dir
-        old_cwd = os.getcwd()
+        old_cwd = Path.cwd()
         with tempfile.TemporaryDirectory() as tmp:
             os.chdir(tmp)
             self.addCleanup(os.chdir, old_cwd)
@@ -67,7 +67,7 @@ class TestImageUtil(unittest.TestCase):
             (Path("c.txt")).write_bytes(b"txt")
 
             # The glob hits the same files as the dir -> no duplicates
-            images = image_util.get_images(dir_=Path("."), glob_="*")
+            images = image_util.get_images(dir_=Path(), glob_="*")
 
         assert images == [Path("a.jpg"), Path("b.png")]
 
@@ -102,12 +102,8 @@ class TestImageUtil(unittest.TestCase):
         resp = MagicMock()
         resp.content = self.png_bytes
         resp.headers = {"Content-Type": "image/jpeg; charset=utf-8"}
-        with patch(
-            "llama.pylib.image_util.requests.get", return_value=resp
-        ) as get:
-            base64_image, mime_type = image_util.load_image(
-                "https://example.com/a.jpg"
-            )
+        with patch("llama.pylib.image_util.requests.get", return_value=resp) as get:
+            base64_image, mime_type = image_util.load_image("https://example.com/a.jpg")
 
         get.assert_called_once_with("https://example.com/a.jpg", timeout=30)
         assert mime_type == "image/jpeg"
@@ -148,9 +144,7 @@ class TestImageUtil(unittest.TestCase):
     def test_downscale_rgba_converted_to_jpeg_13(self) -> None:
         # JPEG has no alpha channel; RGBA input must be converted
         rgba = self.tmp / "rgba.png"
-        Image.new(
-            "RGBA", (2000, 1000), (255, 0, 0, 128)
-        ).save(rgba, format="PNG")
+        Image.new("RGBA", (2000, 1000), (255, 0, 0, 128)).save(rgba, format="PNG")
 
         base64_image, mime_type = image_util.downscale(rgba)
 
