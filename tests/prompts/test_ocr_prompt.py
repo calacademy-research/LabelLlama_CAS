@@ -43,6 +43,13 @@ class TestOcrPrompt(unittest.TestCase):
         assert prompt.name == "ocr_v2"
         assert prompt.description.startswith("OCR labels on images")
 
+    def test_req_fields_empty_10(self) -> None:
+        # TaskWriter.check() reads prompt.req_fields, so OcrPrompt must
+        # define it (an OCR prompt has no required fields)
+        prompt = OcrPrompt(prompt=PROMPTS_DIR / "ocr_v2.md", model_id="model")
+
+        assert prompt.req_fields == []
+
     def test_base_payload_05(self) -> None:
         # base_payload has the model, a system message, and a placeholder
         prompt = OcrPrompt(prompt=PROMPTS_DIR / "ocr_v1.md", model_id="model")

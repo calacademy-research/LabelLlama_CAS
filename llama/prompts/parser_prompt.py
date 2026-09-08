@@ -3,12 +3,12 @@ import re
 from textwrap import dedent
 from typing import Any, ClassVar
 
-from llama.prompts.base_prompt import BasePrompt
+from llama.prompts import base_prompt
 from llama.prompts.ocr_prompt import FIRST_COLUMNS
 from llama.prompts.prompt_file_parser import PromptFileParser
 
 
-class ParserPrompt(BasePrompt):
+class ParserPrompt:
     # -------------- ClassVars ---------------
     text_msg: ClassVar[str] = """Extract data from this `text`:\n\n"""
     # ----------------------------------------
@@ -37,7 +37,7 @@ class ParserPrompt(BasePrompt):
             """)
         self.system_msg += self.json_schema
 
-        self.base_headers = self._headers()
+        self.base_headers = base_prompt.headers()
         self.base_payload = self._base_payload(**kwargs)
 
     def _build_field_guidance(self, prompt_parser: PromptFileParser) -> str:
@@ -57,7 +57,7 @@ class ParserPrompt(BasePrompt):
             ],
             "response_format": self.json_schema,
         }
-        payload.update(self._payload_args(**kwargs))
+        payload.update(base_prompt.payload_args(**kwargs))
         return payload
 
     def payload(self, text: str) -> dict:

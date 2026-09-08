@@ -54,7 +54,6 @@ class TaskWriter:
         except ValueError as err:
             logging.exception(f"Parse error for: {Path(result['source']).name}")
             text = str(err)
-            logging.exception(text)
             self.writer.writerow(
                 {
                     "status": self.statuses.count(ModelStatus.ERROR),
@@ -78,7 +77,7 @@ class TaskWriter:
         if self.prompt.columns:
             if any(c not in self.prompt.columns for c in result):
                 raise ValueError("Hallucinated column")
-            if hasattr(self.prompt, "req_fields") and not all(
+            if self.prompt.req_fields and not all(
                 result.get(req) for req in self.prompt.req_fields
             ):
                 raise ValueError("Missing required field.")

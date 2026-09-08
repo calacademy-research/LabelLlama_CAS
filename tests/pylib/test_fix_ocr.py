@@ -115,6 +115,16 @@ class TestFixOcr(unittest.TestCase):
         # Filter words are kept (filter_lines is not part of clean_ocr)
         assert fix_ocr.clean_ocr("Herbarium\nline") == "Herbarium\nline"
 
+    def test_clean_ocr_list_24(self) -> None:
+        # RED: the signature says `str | list[str]`, but the list branch
+        # does `part[text]` (indexing each part with the whole list),
+        # which raises TypeError for any list input.
+        # Suggested fix (fix_ocr.py): `text = " ".join(text)` for
+        # list[str] input; if dict parts are intended, use
+        # `part["text"]` and change the annotation to list[dict].
+        assert fix_ocr.clean_ocr(["part one", "part two"]) == "part one part two"
+        assert fix_ocr.clean_ocr([]) == ""
+
     # ---------------------------------------------------------------------
     def test_html_to_md_extra_20(self) -> None:
         # Bold / italic markdown notations are stripped

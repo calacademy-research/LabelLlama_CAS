@@ -1,14 +1,14 @@
 from dataclasses import dataclass
 from typing import Any, ClassVar
 
-from llama.prompts.base_prompt import BasePrompt
+from llama.prompts import base_prompt
 from llama.prompts.prompt_file_parser import PromptFileParser
 
 FIRST_COLUMNS = ["status", "source", "elapsed", "text"]
 
 
 @dataclass
-class OcrPrompt(BasePrompt):
+class OcrPrompt:
     # -------------- ClassVars ---------------
     columns: ClassVar[list[str]] = FIRST_COLUMNS
     # ----------------------------------------
@@ -19,8 +19,9 @@ class OcrPrompt(BasePrompt):
         self.description = prompt_parser.description
         self.system_msg = prompt_parser.system_msg
 
-        self.base_headers = self._headers()
+        self.base_headers = base_prompt.headers()
         self.base_payload = self._base_payload(**kwargs)
+        self.req_fields = []
 
     def _base_payload(self, **kwargs: dict[str, Any]) -> dict:
         payload = {
@@ -30,7 +31,7 @@ class OcrPrompt(BasePrompt):
                 {"role": "replace me"},
             ],
         }
-        payload.update(self._payload_args(**kwargs))
+        payload.update(base_prompt.payload_args(**kwargs))
         return payload
 
     def payload(self, mime_type: str, base64_image: str) -> dict:

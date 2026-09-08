@@ -24,9 +24,7 @@ from llama.results.task_writer import TaskWriter
 def ocr_images(args: argparse.Namespace) -> None:
     job_began = log.job_began(args.log_file, args=args)
 
-    docs = OcrDocs(
-        args.image_dir, args.image_glob, args.ocr_file, args.input_file, args.limit
-    )
+    docs = OcrDocs(args.image_dir, args.image_glob, args.ocr_file, args.limit)
 
     docs.log_what_to_do()
 
@@ -56,7 +54,12 @@ def ocr_images(args: argparse.Namespace) -> None:
 
             futures = {
                 executor.submit(
-                    call_model, prompt, source, sessions, args.api_host, args.timeout
+                    call_model,
+                    prompt,
+                    source,
+                    sessions,
+                    args.api_host,
+                    args.timeout,
                 ): source
                 for source in docs.tasks
             }
@@ -81,7 +84,7 @@ def call_model(
     began = datetime.now()
 
     try:
-        base64_image, mime_type = image_util.load_image(source, timeout)
+        base64_image, mime_type = image_util.load_image(source)
 
         session = sessions.get()
 
@@ -140,26 +143,18 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
             argument. An example: 'museum/data/images1/*.jpg'""",
     )
     io_group.add_argument(
-        "--input-file",
-        type=Path,
-        metavar="PATH",
-        help="""Read a list of image sources (local paths and/or http(s) URLs)
-            from this file, one source per line. Blank lines and lines starting
-            with '#' are ignored. Can be combined with --image-dir /
-            --image-glob, or used on its own.""",
-    )
-    io_group.add_argument(
         "--ocr-file",
         type=Path,
         required=True,
         metavar="PATH",
-        help="""Put OCRed text into this CSV file. This appends data to the file.""",
+        help="""Put OCRed text into this CSV file. If the file exists then it appends to
+            this file.""",
     )
     prompt_group = arg_parser.add_argument_group("prompt options")
     prompt_group.add_argument(
         "--prompt",
         type=Path,
-        default="prompts/ocr_v2.md",
+        default=Path("prompts/ocr_v2.md"),
         metavar="PATH",
         help="""A markdown file with a prompt used to OCR images.
             (default: %(default)s)""",
@@ -204,7 +199,7 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         default=120,
         metavar="INT",
         help="""How long to wait for the OCR model to complete in seconds.
-            (default: %(default)s) 2 minutes is a life time for OCR.""",
+            (default: %(default)s)""",
     )
     model_group.add_argument(
         "--thinking",
@@ -233,12 +228,16 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         help="""Only OCR this many images.""",
     )
     ns: argparse.Namespace = arg_parser.parse_args(args)
-    if not ns.image_dir and not ns.image_glob and not ns.input_file:
-        arg_parser.error(
-            "one of --image-dir, --image-glob, or --input-file is required"
-        )
+    if not ns.image_dir and not ns.image_glob:
+        arg_parser.error("one of --image-dir or --image-glob is required")
     if ns.image_dir and not ns.image_dir.is_dir():
         arg_parser.error(f"--image-dir is not a directory: {ns.image_dir}")
+    if ns.limit is not None and ns.limit < 1:
+        arg_parser.error(f"--limit must be an integer >= 1: {ns.limit}")
+    if ns.threads < 1:
+        arg_parser.error(f"--threads must be an integer >= 1: {ns.threads}")
+    if ns.timeout < 1:
+        arg_parser.error(f"--timeout must be an integer >= 1: {ns.timeout} seconds")
     return ns
 
 

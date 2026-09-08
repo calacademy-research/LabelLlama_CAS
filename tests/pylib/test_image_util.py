@@ -4,7 +4,6 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 from PIL import Image
 
@@ -98,27 +97,6 @@ class TestImageUtil(unittest.TestCase):
         assert mime_type == "application/octet-stream"
         assert base64.b64decode(base64_image) == self.png_bytes
 
-    def test_load_image_url_09(self) -> None:
-        resp = MagicMock()
-        resp.content = self.png_bytes
-        resp.headers = {"Content-Type": "image/jpeg; charset=utf-8"}
-        with patch("llama.pylib.image_util.requests.get", return_value=resp) as get:
-            base64_image, mime_type = image_util.load_image("https://example.com/a.jpg")
-
-        get.assert_called_once_with("https://example.com/a.jpg", timeout=30)
-        assert mime_type == "image/jpeg"
-        assert base64.b64decode(base64_image) == self.png_bytes
-
-    def test_load_image_url_mime_fallback_10(self) -> None:
-        # A non-image Content-Type falls back to guessing from the URL
-        resp = MagicMock()
-        resp.content = self.png_bytes
-        resp.headers = {"Content-Type": "text/html"}
-        with patch("llama.pylib.image_util.requests.get", return_value=resp):
-            _, mime_type = image_util.load_image("https://example.com/a.png")
-
-        assert mime_type == "image/png"
-
     def test_downscale_small_image_unchanged_11(self) -> None:
         small = self.tmp / "small.png"
         buf = io.BytesIO()
@@ -152,31 +130,6 @@ class TestImageUtil(unittest.TestCase):
         img = Image.open(io.BytesIO(base64.b64decode(base64_image)))
         assert img.mode == "RGB"
         assert img.size == (1200, 600)
-
-    def test_read_sources_14(self) -> None:
-        with tempfile.NamedTemporaryFile(
-            "w", suffix=".txt", delete=False, encoding="utf-8"
-        ) as f:
-            f.write(
-                "# comment line\n"
-                "\n"
-                "/data/a.png\n"
-                "https://example.com/b.jpg\n"
-                "   \n"
-                "/data/a.png\n"
-                "/data/c.txt\n"
-            )
-            path = Path(f.name)
-        self.addCleanup(path.unlink, missing_ok=True)
-
-        sources = image_util.read_sources(path)
-
-        # Duplicates removed, comments/blank lines dropped, URLs stay str
-        assert sources == [
-            Path("/data/a.png"),
-            "https://example.com/b.jpg",
-            Path("/data/c.txt"),
-        ]
 
 
 if __name__ == "__main__":

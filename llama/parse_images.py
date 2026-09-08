@@ -28,9 +28,7 @@ def extract(args: argparse.Namespace) -> None:
 
     prompt = ParserPrompt(**vars(args))
 
-    docs = OcrDocs(
-        args.image_dir, args.image_glob, args.ocr_file, args.input_file, args.limit
-    )
+    docs = OcrDocs(args.image_dir, args.image_glob, args.ocr_file, args.limit)
     docs.log_what_to_do()
 
     statuses = StatusCounts()
@@ -144,15 +142,6 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         metavar="GLOB",
         help="""Get all images matching this glob/pattern. You will need to quote this
             argument. An example: 'museum/data/images1/*.jpg'""",
-    )
-    io_group.add_argument(
-        "--input-file",
-        type=Path,
-        metavar="path",
-        help="""Read a list of image sources (local paths and/or http(s) URLs)
-            from this file, one source per line. Blank lines and lines starting
-            with '#' are ignored. Can be combined with --image-dir /
-            --image-glob, or used on its own.""",
     )
     io_group.add_argument(
         "--parsed-file",

@@ -63,8 +63,8 @@ def job_began(
 
 
 def job_elapsed(job_began: datetime) -> None:
-    job_elapsed = datetime.now() - job_began
-    msg = f"Job elapsed {job_elapsed}"
+    elapsed = datetime.now() - job_began
+    msg = f"Job elapsed {elapsed}"
     logging.info(msg)
     finished()
 

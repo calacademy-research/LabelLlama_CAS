@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar
 
 import pandas as pd
@@ -8,8 +9,6 @@ from llama.pylib import image_util
 from llama.results.model_status import ModelStatus
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from llama.results.model_status import StatusCounts
 
 
@@ -40,18 +39,18 @@ class OcrDocs:
         image_dir: Path,
         image_glob: str = "",
         ocr_file: Path | None = None,
-        input_file: Path | None = None,
         limit: int | None = None,
     ) -> None:
         self.ocr_file = ocr_file
         self.limit = limit
 
         self.image_paths = image_util.get_images(image_dir, image_glob)
-        self.image_paths = self.image_paths[:limit]
 
         self.ocr_records, self.file_mode = self._read_ocr_records(ocr_file)
         self.already_done = self._get_already_read()
-        self.tasks = self._get_tasks(input_file)
+
+        self.tasks = self._get_tasks()
+        self.tasks = self.tasks[:limit]
 
     @property
     def input_len(self) -> int:
@@ -74,31 +73,18 @@ class OcrDocs:
 
     def _get_already_read(self) -> set[str]:
         return {
-            r.get("source", "")
+            r.get("source")
             for r in self.ocr_records
             if r.get("source") and r.get("status", "").lower() == ModelStatus.SUCCESS
         }
 
-    def _get_tasks(self, input_file: Path | None) -> list[Path]:
-        tasks = {str(p): p for p in self.image_paths if str(p) not in self.already_done}
-        if input_file:
-            tasks |= {
-                str(s): s
-                for s in image_util.read_sources(input_file)
-                if str(s) not in self.already_done
-            }
-        return sorted(tasks.values(), key=str)
-
-    @staticmethod
-    def get_ocr_records(ocr_file: Path | None) -> list[dict]:
-        return (
-            pd.read_csv(ocr_file, dtype=str).fillna("").to_dict("records")
-            if ocr_file
-            else []
-        )
+    def _get_tasks(self) -> list[Path]:
+        tasks = {p for p in self.image_paths if str(p) not in self.already_done}
+        tasks = sorted(tasks, key=str)
+        return tasks
 
     def log_what_to_do(self) -> None:
-        logging.info(f"There are {self.input_len} images to process")
+        logging.info(f"There are {self.input_len} images")
         logging.info(f"{len(self.already_done)} images were already done.")
         if self.limit:
             logging.info(f"Limited to {self.limit} images.")
