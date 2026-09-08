@@ -28,7 +28,7 @@ def extract(args: argparse.Namespace) -> None:
 
     prompt = ParserPrompt(**vars(args))
 
-    docs = OcrDocs.build(
+    docs = OcrDocs(
         args.image_dir, args.image_glob, args.ocr_file, args.input_file, args.limit
     )
     docs.log_what_to_do()
@@ -52,6 +52,7 @@ def extract(args: argparse.Namespace) -> None:
                 out_file=output_file,
                 statuses=statuses,
                 progress_bar=pbar,
+                prompt=prompt,
             )
 
             futures = {
@@ -66,7 +67,7 @@ def extract(args: argparse.Namespace) -> None:
             finally:
                 sessions.close_all()
 
-    docs.log_what_was_done(docs, "images", statuses)
+    docs.log_what_was_done(statuses)
     log.job_elapsed(job_began)
 
 

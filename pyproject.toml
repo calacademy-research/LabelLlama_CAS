@@ -80,9 +80,11 @@ ignore = [
   "PLR2004", # Magic value used in comparison
   "PLW0603", # Using the global statement to update {name} is discouraged
   "PLW2901", # Outer {outer_kind} variable {name} overwritten by inner {inner_kind} target
+  "PT027",   # Replace `assertRaises` with `pytest.raises`
   "RET504",  # Unnecessary assignment to {name} before return statement
   "RUF001",  # String contains ambiguous character
   "S101",    # Use of assert detected
+  "SLF001",  # Private member accessed: `_member`
   "T201",    # print found
   "TD002",   # Missing author in TODO
   "TD003",   # Missing issue link on the line following this TODO

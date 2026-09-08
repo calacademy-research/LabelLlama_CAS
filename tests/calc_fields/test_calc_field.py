@@ -5,12 +5,14 @@ from dataclasses import dataclass, is_dataclass
 from llama.calc_fields.calc_field import CalcField
 
 
-@dataclass
-class _SampleField(CalcField):
+def make_sample(**fields: str) -> type[CalcField]:
     """Minimal concrete subclass used to exercise the base class."""
+    namespace = {"__annotations__": dict.fromkeys(fields, str)}
+    namespace.update(fields)
+    return dataclass(type("SampleField", (CalcField,), namespace))
 
-    alpha: str = ""
-    _hidden: str = ""
+
+SampleField = make_sample(alpha="", _hidden="")
 
 
 class TestCalcField(unittest.TestCase):
@@ -20,7 +22,7 @@ class TestCalcField(unittest.TestCase):
 
     def test_calc_field_02(self) -> None:
         # Subclasses construct as (cleaned_rec, **field_values)
-        field = _SampleField({"a": 1}, "x")
+        field = SampleField({"a": 1}, "x")
         assert field.alpha == "x"
 
     def test_calc_field_03(self) -> None:
@@ -30,15 +32,15 @@ class TestCalcField(unittest.TestCase):
 
     def test_calc_field_04(self) -> None:
         # get_field_names returns the (stored) field names of a subclass
-        assert _SampleField.get_field_names() == ["alpha", "_hidden"]
+        assert SampleField.get_field_names() == ["alpha", "_hidden"]
 
     def test_calc_field_05(self) -> None:
         # get_visible_fields excludes underscore-prefixed names
-        assert _SampleField.get_visible_fields() == ["alpha"]
+        assert SampleField.get_visible_fields() == ["alpha"]
 
     def test_calc_field_06(self) -> None:
         # ClassVars (scoring_method) are not reported as fields
-        assert "scoring_method" not in _SampleField.get_field_names()
+        assert "scoring_method" not in SampleField.get_field_names()
 
     def test_calc_field_07(self) -> None:
         # Default scoring method

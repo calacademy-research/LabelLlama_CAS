@@ -75,8 +75,8 @@ def load_image(source: Path | str, timeout: int = 30) -> tuple[str, str]:
         mime_type = resp.headers.get("Content-Type", "").split(";")[0].strip()
         if not mime_type.startswith("image/"):
             mime_type = mimetypes.guess_type(source)[0] or "application/octet-stream"
-    elif isinstance(source, Path):
-        with source.open("rb") as f:
+    else:
+        with Path(source).open("rb") as f:
             base64_image = base64.b64encode(f.read()).decode("utf-8")
         mime_type, _ = mimetypes.guess_type(source)
         if not mime_type or not mime_type.startswith("image/"):

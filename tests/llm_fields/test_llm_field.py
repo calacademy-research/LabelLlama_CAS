@@ -5,11 +5,14 @@ from dataclasses import dataclass, is_dataclass
 from llama.llm_fields.llm_field import LlmField
 
 
-@dataclass
-class _SampleLlm(LlmField):
+def make_sample(**fields: str) -> type[LlmField]:
     """Minimal concrete subclass used to exercise the base class."""
+    namespace = {"__annotations__": dict.fromkeys(fields, str)}
+    namespace.update(fields)
+    return dataclass(type("SampleLlm", (LlmField,), namespace))
 
-    beta: str = ""
+
+SampleLlm = make_sample(beta="")
 
 
 class TestLlmField(unittest.TestCase):
@@ -19,7 +22,7 @@ class TestLlmField(unittest.TestCase):
 
     def test_llm_field_02(self) -> None:
         # Subclasses construct as (text, **field_values)
-        field = _SampleLlm("hello", "x")
+        field = SampleLlm("hello", "x")
         assert field.beta == "x"
 
     def test_llm_field_03(self) -> None:
@@ -29,11 +32,11 @@ class TestLlmField(unittest.TestCase):
 
     def test_llm_field_04(self) -> None:
         # get_field_names returns the (stored) field names of a subclass
-        assert _SampleLlm.get_field_names() == ["beta"]
+        assert SampleLlm.get_field_names() == ["beta"]
 
     def test_llm_field_05(self) -> None:
         # ClassVars (scoring_method) are not reported as fields
-        assert "scoring_method" not in _SampleLlm.get_field_names()
+        assert "scoring_method" not in SampleLlm.get_field_names()
 
     def test_llm_field_06(self) -> None:
         # Default scoring method

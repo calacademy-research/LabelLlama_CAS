@@ -4,7 +4,6 @@ import argparse
 import csv
 import logging
 import textwrap
-from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from json.decoder import JSONDecodeError
@@ -18,6 +17,7 @@ from llama.prompts.base_prompt import Thinking
 from llama.prompts.parser_prompt import ParserPrompt
 from llama.pylib import fix_ocr, log
 from llama.pylib.thread_sessions import ThreadSessions
+from llama.result.model_status import StatusCounts
 from llama.results.model_status import ModelStatus
 from llama.results.parsed_docs import ParsedDocs
 from llama.results.task_writer import TaskWriter
@@ -31,9 +31,9 @@ def parse_text(args: argparse.Namespace) -> None:
     docs = ParsedDocs(args.parsed_file, args.ocr_file, args.limit)
     docs.log_what_to_do()
 
-    prompt = ParserPrompt.load(args.prompt)
+    prompt = ParserPrompt(args.prompt)
 
-    statuses = defaultdict(int)
+    statuses = StatusCounts()
 
     with args.parsed_file.open(docs.file_mode) as output_file:
         writer = csv.DictWriter(output_file, prompt.columns)
@@ -50,6 +50,7 @@ def parse_text(args: argparse.Namespace) -> None:
                 out_file=output_file,
                 statuses=statuses,
                 progress_bar=pbar,
+                prompt=prompt,
             )
 
             futures = {
@@ -74,7 +75,7 @@ def parse_text(args: argparse.Namespace) -> None:
             finally:
                 sessions.close_all()
 
-    prompt.log_what_was_done(docs, "documents", statuses)
+    docs.log_what_was_done(statuses)
     log.job_elapsed(job_began)
 
 

@@ -49,6 +49,21 @@ class TestFieldActionLoad(unittest.TestCase):
         assert utm.field_class("", "17N 500000 4500000").utm == "17N 500000 4500000"
         assert date.field_class().eventDate == ""
 
+    def test_multi_column_calc_field_06(self) -> None:
+        # A field class with several columns reports them all
+        from llama.calc_fields.location.elevation import Elevation
+
+        action = FieldAction("../llama/calc_fields/location/elevation.py")
+
+        assert action.field_class is Elevation
+        assert action.columns == Elevation.get_field_names()
+        assert len(action.columns) > 1
+
+    def test_missing_module_raises_07(self) -> None:
+        # A link to a non-existent module fails loudly at construction
+        with self.assertRaises(ModuleNotFoundError):
+            FieldAction("../llama/llm_fields/location/nope.py")
+
 
 if __name__ == "__main__":
     unittest.main()

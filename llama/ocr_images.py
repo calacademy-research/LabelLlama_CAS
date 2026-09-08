@@ -24,13 +24,13 @@ from llama.results.task_writer import TaskWriter
 def ocr_images(args: argparse.Namespace) -> None:
     job_began = log.job_began(args.log_file, args=args)
 
-    docs = OcrDocs.build(
+    docs = OcrDocs(
         args.image_dir, args.image_glob, args.ocr_file, args.input_file, args.limit
     )
 
     docs.log_what_to_do()
 
-    prompt = OcrPrompt.load(args.prompt)
+    prompt = OcrPrompt(**vars(args))
 
     statuses = StatusCounts()
 
@@ -51,6 +51,7 @@ def ocr_images(args: argparse.Namespace) -> None:
                 out_file=output_file,
                 statuses=statuses,
                 progress_bar=pbar,
+                prompt=prompt,
             )
 
             futures = {

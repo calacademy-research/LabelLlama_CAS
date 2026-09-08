@@ -20,7 +20,7 @@ def postprocess_fields(args: argparse.Namespace) -> None:
     df = pd.read_csv(args.parsed_file, dtype=str).fillna("")
 
     prompt = ParserPrompt(**vars(args))
-    cleaner = ParserCleaner.load(prompt)
+    cleaner = ParserCleaner(prompt)
     cleaner.validate_columns(df.columns, prompt)
 
     llm_columns = cleaner.get_llm_columns(df.columns)

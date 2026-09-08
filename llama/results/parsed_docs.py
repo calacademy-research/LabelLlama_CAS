@@ -1,5 +1,4 @@
 import logging
-from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 import pandas as pd
@@ -16,17 +15,7 @@ if TYPE_CHECKING:
 REQUIRED_OCR_COLUMNS = {"source", "text"}
 
 
-@dataclass
 class ParsedDocs:
-    ocr_file: Path | None = None
-    ocr_records: list[dict] = field(default_factory=list[dict])
-    parsed_file: Path | None = None
-    file_mode: str = "w"
-    parsed_records: list[dict] = field(default_factory=list[dict])
-    already_done: set[str] = field(default_factory=set[str])
-    tasks: list[dict] = field(default_factory=list[dict])
-    limit: int | None = None
-
     def __init__(
         self,
         parsed_file: Path,
@@ -68,14 +57,11 @@ class ParsedDocs:
         records = []
         if parsed_file and parsed_file.exists() and parsed_file.stat().st_size > 0:
             df = read_results_csv(parsed_file, "existing parsed file")
-            if (
-                df is not None
-                and expected_columns
-                and list(df.columns) != expected_columns
-            ):
-                raise ValueError(
-                    "Existing parsed file columns do not match the prompt columns"
-                )
+            if df is not None:
+                if expected_columns and list(df.columns) != expected_columns:
+                    raise ValueError(
+                        "Existing parsed file columns do not match the prompt columns"
+                    )
                 mode = "a"
                 records = df.to_dict("records")
         return records, mode

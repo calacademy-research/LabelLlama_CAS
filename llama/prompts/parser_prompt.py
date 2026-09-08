@@ -17,6 +17,7 @@ class ParserPrompt(BasePrompt):
         prompt_parser = PromptFileParser(kwargs["prompt"])
         self.name = prompt_parser.name
         self.description = prompt_parser.description
+        self.req_fields = prompt_parser.req_fields
 
         clash = self.column_clash([f.name for f in prompt_parser.llm_fields])
         if clash:

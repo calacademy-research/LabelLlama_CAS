@@ -1,18 +1,16 @@
 import logging
-from dataclasses import dataclass, field
-from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar
 
 import pandas as pd
 
+from llama.prompts.ocr_prompt import FIRST_COLUMNS
 from llama.pylib import image_util
 from llama.results.model_status import ModelStatus
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from llama.results.model_status import StatusCounts
-
-
-COLUMNS = ["status", "source", "elapsed", "text"]
 
 
 def read_results_csv(path: Path, label: str) -> pd.DataFrame | None:
@@ -32,18 +30,10 @@ def read_results_csv(path: Path, label: str) -> pd.DataFrame | None:
         raise ValueError(f"{label} is not a readable CSV file: {path} ({err})") from err
 
 
-@dataclass
 class OcrDocs:
     # -------------- ClassVars ---------------
-    columns: ClassVar[list[str]] = COLUMNS
+    columns: ClassVar[list[str]] = FIRST_COLUMNS
     # ----------------------------------------
-
-    ocr_file: Path | None = None
-    file_mode: str = "w"
-    ocr_records: list[dict] = field(default_factory=list[dict])
-    already_done: set[str] = field(default_factory=set[str])
-    tasks: list[Path] = field(default_factory=list)
-    limit: int | None = None
 
     def __init__(
         self,
@@ -73,7 +63,7 @@ class OcrDocs:
         if ocr_file and ocr_file.exists():
             df = read_results_csv(ocr_file, "OCR file")
             if df is not None:
-                missing = set(COLUMNS) - set(df.columns)
+                missing = set(FIRST_COLUMNS) - set(df.columns)
                 if missing:
                     missing_str = ", ".join(sorted(missing))
                     msg = f"OCR file is missing required columns: {missing_str}"
@@ -90,14 +80,14 @@ class OcrDocs:
         }
 
     def _get_tasks(self, input_file: Path | None) -> list[Path]:
-        tasks = sorted(p for p in self.image_paths if str(p) not in self.already_done)
+        tasks = {str(p): p for p in self.image_paths if str(p) not in self.already_done}
         if input_file:
-            tasks += [
-                Path(s)
+            tasks |= {
+                str(s): s
                 for s in image_util.read_sources(input_file)
                 if str(s) not in self.already_done
-            ]
-        return tasks
+            }
+        return sorted(tasks.values(), key=str)
 
     @staticmethod
     def get_ocr_records(ocr_file: Path | None) -> list[dict]:

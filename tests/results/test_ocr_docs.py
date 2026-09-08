@@ -1,0 +1,196 @@
+import csv
+import tempfile
+import unittest
+from pathlib import Path
+
+from llama.results.model_status import StatusCounts
+from llama.results.ocr_docs import OcrDocs, read_results_csv
+
+PROMPTS_DIR = Path(__file__).resolve().parents[2] / "prompts"
+
+
+def write_csv(path: Path, header: list[str], rows: list[list]) -> None:
+    with path.open("w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(header)
+        writer.writerows(rows)
+
+
+class TestOcrDocs(unittest.TestCase):
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.tmp = Path(self._tmp.name)
+        self.a = self.tmp / "a.png"
+        self.b = self.tmp / "b.jpg"
+        self.a.write_bytes(b"png")
+        self.b.write_bytes(b"jpg")
+        (self.tmp / "notes.txt").write_text("not an image")
+
+    def test_read_results_csv_basic_01(self) -> None:
+        path = self.tmp / "res.csv"
+        write_csv(
+            path,
+            ["status", "source", "elapsed", "text"],
+            [["success", "a.png", "1.0", "hello"], ["ERROR", "b.png", "", ""]],
+        )
+
+        df = read_results_csv(path, "OCR file")
+
+        assert df is not None
+        # Missing cells become "", everything stays a string
+        assert df.iloc[1]["elapsed"] == ""
+        assert df.iloc[0]["text"] == "hello"
+        assert isinstance(df.iloc[0]["elapsed"], str)
+
+    def test_read_results_csv_empty_file_returns_none_02(self) -> None:
+        path = self.tmp / "empty.csv"
+        path.write_bytes(b"")
+
+        assert read_results_csv(path, "OCR file") is None
+
+    def test_read_results_csv_corrupt_raises_value_error_03(self) -> None:
+        path = self.tmp / "bad.csv"
+        # Unbalanced quote -> pandas ParserError
+        path.write_text('status,source\n"unterminated,2\n', encoding="utf-8")
+
+        with self.assertRaises(ValueError) as ctx:
+            read_results_csv(path, "OCR file")
+
+        # The label and the path help the user find the bad file
+        assert "OCR file" in str(ctx.exception)
+        assert str(path) in str(ctx.exception)
+
+    def test_read_results_csv_bad_encoding_raises_04(self) -> None:
+        path = self.tmp / "bin.csv"
+        path.write_bytes(b"\xff\xfe\x00\x81\n\x00")
+
+        with self.assertRaises(ValueError):
+            read_results_csv(path, "OCR file")
+
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+
+    def test_init_without_ocr_file_05(self) -> None:
+        docs = OcrDocs(self.tmp, ocr_file=self.tmp / "ocr.csv")
+
+        assert docs.file_mode == "w"
+        assert docs.ocr_records == []
+        assert docs.already_done == set()
+        assert docs.input_len == 2
+        assert docs.tasks == [self.a, self.b]
+
+    def test_init_with_existing_ocr_file_06(self) -> None:
+        ocr_file = self.tmp / "ocr.csv"
+        write_csv(
+            ocr_file,
+            ["status", "source", "elapsed", "text"],
+            [
+                ["success", str(self.a), "1.0", "ok"],
+                ["ERROR", str(self.b), "0.5", "boom"],
+            ],
+        )
+
+        docs = OcrDocs(self.tmp, ocr_file=ocr_file)
+
+        # Append mode, records kept, only successes count as done
+        assert docs.file_mode == "a"
+        assert len(docs.ocr_records) == 2
+        assert docs.already_done == {str(self.a)}
+        # The failed image is scheduled again, the success is not
+        assert docs.tasks == [self.b]
+
+    def test_init_missing_columns_raises_07(self) -> None:
+        ocr_file = self.tmp / "ocr.csv"
+        write_csv(ocr_file, ["status", "source"], [["success", "a.png"]])
+
+        with self.assertRaises(ValueError) as ctx:
+            OcrDocs(self.tmp, ocr_file=ocr_file)
+
+        assert "text" in str(ctx.exception)
+
+    def test_limit_is_applied_08(self) -> None:
+        docs = OcrDocs(self.tmp, ocr_file=self.tmp / "o.csv", limit=1)
+
+        assert docs.input_len == 1
+        assert docs.tasks == [self.a]
+
+    def test_input_file_adds_sources_09(self) -> None:
+        ocr_file = self.tmp / "ocr.csv"
+        write_csv(
+            ocr_file,
+            ["status", "source", "elapsed", "text"],
+            [["success", str(self.a), "1.0", "ok"]],
+        )
+        new_image = self.tmp / "d.png"
+        input_file = self.tmp / "sources.txt"
+        input_file.write_text(f"{self.a}\n{new_image}\n", encoding="utf-8")
+
+        docs = OcrDocs(self.tmp, ocr_file=ocr_file, input_file=input_file)
+
+        # Done sources from the list are skipped, new ones are added
+        assert str(self.a) not in [str(t) for t in docs.tasks]
+        assert new_image in docs.tasks
+
+    def test_input_file_urls_stay_strings_10(self) -> None:
+        url = "https://example.com/img.jpg"
+        input_file = self.tmp / "sources.txt"
+        input_file.write_text(url + "\n", encoding="utf-8")
+
+        docs = OcrDocs(self.tmp, input_file=input_file)
+
+        assert url in docs.tasks
+
+    def test_tasks_deduplicated_across_sources_11(self) -> None:
+        # Duplicate entries are only in the task list once
+        input_file = self.tmp / "sources.txt"
+        input_file.write_text(f"{self.a}\n", encoding="utf-8")
+
+        docs = OcrDocs(self.tmp, input_file=input_file)
+
+        assert [str(t) for t in docs.tasks].count(str(self.a)) == 1
+
+    def test_get_ocr_records_13(self) -> None:
+        ocr_file = self.tmp / "ocr.csv"
+        write_csv(
+            ocr_file,
+            ["status", "source", "elapsed", "text"],
+            [["success", "a.png", "1.0", "ok"]],
+        )
+
+        assert OcrDocs.get_ocr_records(None) == []
+        records = OcrDocs.get_ocr_records(ocr_file)
+
+        assert records == [
+            {
+                "status": "success",
+                "source": "a.png",
+                "elapsed": "1.0",
+                "text": "ok",
+            }
+        ]
+
+    def test_log_what_to_do_14(self) -> None:
+        docs = OcrDocs(self.tmp, ocr_file=self.tmp / "o.csv", limit=1)
+
+        with self.assertLogs(level="INFO") as log:
+            docs.log_what_to_do()
+
+        output = "\n".join(log.output)
+        assert "1 images to process" in output
+        assert "Limited to 1 images." in output
+
+    def test_log_what_was_done_15(self) -> None:
+        docs = OcrDocs(self.tmp, ocr_file=self.tmp / "o.csv")
+        statuses = StatusCounts()
+        statuses.count("error")
+
+        with self.assertLogs(level="INFO") as log:
+            docs.log_what_was_done(statuses)
+
+        assert "2 images processed" in log.output[0]
+        assert "1 errors" in log.output[0]
+
+
+if __name__ == "__main__":
+    unittest.main()

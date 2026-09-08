@@ -3,8 +3,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from llama.prompts.ocr_prompt import FIRST_COLUMNS
 from llama.results.model_status import ModelStatus, StatusCounts
-from llama.results.ocr_docs import COLUMNS
 
 if TYPE_CHECKING:
     import csv
@@ -12,6 +12,9 @@ if TYPE_CHECKING:
     from concurrent.futures import Future
 
     import tqdm
+
+    from llama.prompts.ocr_prompt import OcrPrompt
+    from llama.prompts.parser_prompt import ParserPrompt
 
 MIN_TEXT_LEN = 32
 
@@ -22,9 +25,13 @@ class TaskWriter:
     out_file: io.StringIO
     statuses: StatusCounts
     progress_bar: tqdm.tqdm
+    prompt: OcrPrompt | ParserPrompt
 
     def write(
-        self, future: Future[dict], source: Path | str = "", text: str = ""
+        self,
+        future: Future[dict],
+        source: Path | str = "",
+        text: str = "",
     ) -> None:
         self.progress_bar.update(1)
         try:
@@ -41,8 +48,8 @@ class TaskWriter:
             }
 
         try:
-            result["status"] = self.statuses.count(result.get("status"))
             self.writer.writerow(result)
+            result["status"] = self.statuses.count(result.get("status"))
             self.out_file.flush()
         except ValueError as err:
             logging.exception(f"Parse error for: {Path(result['source']).name}")
@@ -68,7 +75,15 @@ class TaskWriter:
         legitimately yield nothing. When no text is given (e.g., the input
         was an image) the check always applies.
         """
-        llm_columns = [c for c in self.writer.fieldnames if c not in COLUMNS]
+        if self.prompt.columns:
+            if any(c not in self.prompt.columns for c in result):
+                raise ValueError("Hallucinated column")
+            if hasattr(self.prompt, "req_fields") and not all(
+                result.get(req) for req in self.prompt.req_fields
+            ):
+                raise ValueError("Missing required field.")
+
+        llm_columns = [c for c in self.writer.fieldnames if c not in FIRST_COLUMNS]
         if not llm_columns:
             return
         if text and len(text) < MIN_TEXT_LEN:

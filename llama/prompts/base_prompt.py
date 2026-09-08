@@ -23,6 +23,7 @@ class BasePrompt:
         self.system_msg: str = system_msg
         self.base_headers: dict = base_headers or {}
         self.base_payload: dict = base_payload or {}
+        self.columns: list[str] = []
 
     def headers(self) -> dict:
         return self.base_headers
@@ -42,7 +43,8 @@ class BasePrompt:
         if kwargs.get("max_tokens") is not None:
             payload["max_tokens"] = kwargs["max_tokens"]
 
-        match kwargs.get("thinking", Thinking.USE_SERVER):
+        thinking = kwargs.get("thinking") or Thinking.USE_SERVER
+        match thinking:
             case Thinking.DISABLE_TEMPLATE:
                 payload["chat_template_kwargs"] = {"enable_thinking": False}
             case Thinking.DISABLE_ARG:
