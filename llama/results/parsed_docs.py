@@ -76,8 +76,8 @@ class ParsedDocs:
                 raise ValueError(
                     "Existing parsed file columns do not match the prompt columns"
                 )
-            mode = "a"
-            records = df.to_dict("records")
+                mode = "a"
+                records = df.to_dict("records")
         return records, mode
 
     def _get_already_parsed(self) -> set[str]:

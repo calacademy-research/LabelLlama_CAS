@@ -10,7 +10,7 @@ from llama.prompts.field_action import FieldAction
 class TestFieldActionLoad(unittest.TestCase):
     def test_load_llm_field_01(self) -> None:
         # A standard "../llama/llm_fields/..." link loads the LLM field class
-        action = FieldAction.load("../llama/llm_fields/location/utm.py")
+        action = FieldAction("../llama/llm_fields/location/utm.py")
 
         assert action.name == "utm"
         assert action.module == Path("../llama/llm_fields/location/utm.py")
@@ -19,7 +19,7 @@ class TestFieldActionLoad(unittest.TestCase):
 
     def test_load_calc_field_02(self) -> None:
         # A standard "../llama/calc_fields/..." link loads the CalcField class
-        action = FieldAction.load("../llama/calc_fields/event/eventDate.py")
+        action = FieldAction("../llama/calc_fields/event/eventDate.py")
 
         assert action.name == "eventDate"
         assert action.module == Path("../llama/calc_fields/event/eventDate.py")
@@ -28,23 +28,23 @@ class TestFieldActionLoad(unittest.TestCase):
 
     def test_load_without_relative_prefix_03(self) -> None:
         # A link without the "../" prefix is imported the same way
-        action = FieldAction.load("llama/llm_fields/location/utm.py")
+        action = FieldAction("llama/llm_fields/location/utm.py")
 
         assert action.name == "utm"
         assert action.field_class is Utm
 
     def test_class_name_derived_from_file_stem_04(self) -> None:
         # camelCase file stem maps to the CamelCase class in that module
-        action = FieldAction.load("../llama/llm_fields/taxon/scientificName.py")
+        action = FieldAction("../llama/llm_fields/taxon/scientificName.py")
 
         assert action.name == "scientificName"
         assert action.field_class is ScientificName
         assert action.columns == ["scientificName"]
 
     def test_loaded_fields_are_instantiable_05(self) -> None:
-        # The classes loaded by FieldAction.load must be usable as field classes
-        utm = FieldAction.load("../llama/llm_fields/location/utm.py")
-        date = FieldAction.load("../llama/calc_fields/event/eventDate.py")
+        # The classes loaded by FieldAction must be usable as field classes
+        utm = FieldAction("../llama/llm_fields/location/utm.py")
+        date = FieldAction("../llama/calc_fields/event/eventDate.py")
 
         assert utm.field_class("", "17N 500000 4500000").utm == "17N 500000 4500000"
         assert date.field_class().eventDate == ""

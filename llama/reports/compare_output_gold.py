@@ -105,7 +105,7 @@ def score_against_gold(args: argparse.Namespace) -> None:
     columns = [k for k in columns if k not in FIRST_COLUMNS]
 
     # Load scoring classes
-    llm_field_classes = ParserCleaner.load(args.prompt).llm_field_classes
+    llm_field_classes = ParserCleaner(args.prompt).llm_field_classes
 
     # Build rows for each group
     row_groups = []

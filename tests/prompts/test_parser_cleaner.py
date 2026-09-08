@@ -14,7 +14,7 @@ PROMPTS_DIR = Path(__file__).resolve().parents[2] / "prompts"
 class TestParserCleaner(unittest.TestCase):
     def test_load_llm_field_classes_01(self) -> None:
         # The herbarium prompt lists 40 LLM fields; each name maps to class
-        cleaner = ParserCleaner.load(PROMPTS_DIR / "herbarium_v2.md")
+        cleaner = ParserCleaner(PROMPTS_DIR / "herbarium_v2.md")
 
         assert len(cleaner.llm_field_classes) == 40
         assert cleaner.llm_field_classes["scientificName"] is ScientificName
@@ -22,7 +22,7 @@ class TestParserCleaner(unittest.TestCase):
 
     def test_load_calc_field_classes_02(self) -> None:
         # The herbarium prompt lists 9 calculated fields
-        cleaner = ParserCleaner.load(PROMPTS_DIR / "herbarium_v2.md")
+        cleaner = ParserCleaner(PROMPTS_DIR / "herbarium_v2.md")
 
         assert len(cleaner.calc_field_classes) == 9
         assert cleaner.calc_field_classes["eventDate"] is EventDate
@@ -30,7 +30,7 @@ class TestParserCleaner(unittest.TestCase):
 
     def test_field_classes_are_field_classes_03(self) -> None:
         # Every mapped value must be a real field class with field metadata
-        cleaner = ParserCleaner.load(PROMPTS_DIR / "herbarium_v2.md")
+        cleaner = ParserCleaner(PROMPTS_DIR / "herbarium_v2.md")
 
         for classes in (
             cleaner.llm_field_classes,
@@ -40,17 +40,6 @@ class TestParserCleaner(unittest.TestCase):
                 with self.subTest(name=name):
                     assert inspect.isclass(field_class)
                     assert field_class.get_field_names()
-
-    def test_default_instance_04(self) -> None:
-        # Fresh instances have empty, non-shared class dicts
-        one = ParserCleaner()
-        two = ParserCleaner()
-
-        assert one.llm_field_classes == {}
-        assert one.calc_field_classes == {}
-        one.llm_field_classes["x"] = str
-        assert two.llm_field_classes == {}
-        assert two.calc_field_classes == {}
 
 
 if __name__ == "__main__":

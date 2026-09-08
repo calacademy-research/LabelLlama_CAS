@@ -1,4 +1,3 @@
-from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 from llama.prompts.prompt_file_parser import PromptFileParser
@@ -11,21 +10,17 @@ if TYPE_CHECKING:
 REQUIRED_PARSED_COLUMNS = {"status", "source", "text"}
 
 
-@dataclass
 class ParserCleaner:
-    llm_field_classes: dict[str, Any] = field(default_factory=dict[str, Any])
-    calc_field_classes: dict[str, Any] = field(default_factory=dict[str, Any])
-
-    @classmethod
-    def load(cls, prompt_path: Path) -> ParserCleaner:
-        prompt_parser = PromptFileParser.load(prompt_path)
-        cleaner = cls(
-            llm_field_classes={f.name: f.field_class for f in prompt_parser.llm_fields},
-            calc_field_classes={
-                f.name: f.field_class for f in prompt_parser.calc_fields
-            },
-        )
-        return cleaner
+    def __init__(self, prompt_path: Path) -> None:
+        self.llm_field_classes: dict[str, Any] = []
+        self.calc_field_classes: dict[str, Any] = []
+        prompt_parser = PromptFileParser(prompt_path)
+        self.llm_field_classes = {
+            f.name: f.field_class for f in prompt_parser.llm_fields
+        }
+        self.calc_field_classes = {
+            f.name: f.field_class for f in prompt_parser.calc_fields
+        }
 
     def validate_columns(self, df_columns: list[str], prompt: ParserPrompt) -> None:
         missing_required = REQUIRED_PARSED_COLUMNS - set(df_columns)

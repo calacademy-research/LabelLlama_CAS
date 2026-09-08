@@ -1,5 +1,6 @@
 import logging
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar
 
 import pandas as pd
@@ -8,8 +9,6 @@ from llama.pylib import image_util
 from llama.results.model_status import ModelStatus
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from llama.results.model_status import StatusCounts
 
 
@@ -79,8 +78,8 @@ class OcrDocs:
                     missing_str = ", ".join(sorted(missing))
                     msg = f"OCR file is missing required columns: {missing_str}"
                     raise ValueError(msg)
-            mode = "a"
-            records = df.to_dict("records")
+                mode = "a"
+                records = df.to_dict("records")
         return records, mode
 
     def _get_already_read(self) -> set[str]:
@@ -94,7 +93,7 @@ class OcrDocs:
         tasks = sorted(p for p in self.image_paths if str(p) not in self.already_done)
         if input_file:
             tasks += [
-                s
+                Path(s)
                 for s in image_util.read_sources(input_file)
                 if str(s) not in self.already_done
             ]

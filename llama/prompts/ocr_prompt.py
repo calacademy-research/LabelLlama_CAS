@@ -14,7 +14,7 @@ class OcrPrompt(BasePrompt):
     # ----------------------------------------
 
     def __init__(self, **kwargs: dict[str, Any]) -> None:
-        prompt_parser = PromptFileParser.load(kwargs["prompt"])
+        prompt_parser = PromptFileParser(kwargs["prompt"])
         self.name = prompt_parser.name
         self.description = prompt_parser.description
         self.system_msg = prompt_parser.system_msg

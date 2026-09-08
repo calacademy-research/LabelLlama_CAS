@@ -12,7 +12,7 @@ class TestOcrPrompt(unittest.TestCase):
         assert OcrPrompt.columns == ["status", "source", "elapsed", "text"]
 
     def test_load_ocr_v1_02(self) -> None:
-        prompt = OcrPrompt.load(PROMPTS_DIR / "ocr_v1.md")
+        prompt = OcrPrompt(prompt=PROMPTS_DIR / "ocr_v1.md", model_id="model")
 
         assert prompt.name == "ocr"
         assert prompt.description == "OCR labels on images of museum specimens."
@@ -27,7 +27,7 @@ class TestOcrPrompt(unittest.TestCase):
 
     def test_load_ocr_v2_keeps_subsections_03(self) -> None:
         # "##" sub-headings inside the System Message must stay in system_msg
-        prompt = OcrPrompt.load(PROMPTS_DIR / "ocr_v2.md")
+        prompt = OcrPrompt(prompt=PROMPTS_DIR / "ocr_v2.md", model_id="model")
 
         assert prompt.name == "ocr_v2"
         assert prompt.system_msg.startswith(
@@ -37,11 +37,10 @@ class TestOcrPrompt(unittest.TestCase):
         assert "## Output Rules" in prompt.system_msg
 
     def test_default_instance_04(self) -> None:
-        prompt = OcrPrompt()
+        prompt = OcrPrompt(prompt=PROMPTS_DIR / "ocr_v2.md", model_id="model")
 
-        assert prompt.name == ""
-        assert prompt.description == ""
-        assert prompt.system_msg == ""
+        assert prompt.name == "ocr_v2"
+        assert prompt.description.startswith("OCR labels on images")
 
 
 if __name__ == "__main__":

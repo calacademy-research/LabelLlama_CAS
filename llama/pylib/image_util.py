@@ -5,7 +5,7 @@ from pathlib import Path
 
 import PIL
 import requests
-from PIL import Image
+from PIL import Image, ImageOps
 
 Image.MAX_IMAGE_PIXELS = 300_000_000
 

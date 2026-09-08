@@ -28,11 +28,7 @@ def ocr_images(args: argparse.Namespace) -> None:
         args.image_dir, args.image_glob, args.ocr_file, args.input_file, args.limit
     )
 
-    logging.info(f"There are {docs.input_len} images to process")
-    logging.info(f"{len(docs.already_done)} images were already done.")
-    if docs.limit:
-        logging.info(f"Limited to {docs.limit} images.")
-    logging.info(f"There are {len(docs.tasks)} images left to process.")
+    docs.log_what_to_do()
 
     prompt = OcrPrompt.load(args.prompt)
 
@@ -70,11 +66,7 @@ def ocr_images(args: argparse.Namespace) -> None:
             finally:
                 sessions.close_all()
 
-    logging.info(
-        f"Total {len(docs.tasks)} images processed "
-        f"with {statuses.get(ModelStatus.ERROR)} errors "
-        f"and {len(docs.already_done)} images skipped."
-    )
+    docs.log_what_was_done(statuses)
     log.job_elapsed(job_began)
 
 

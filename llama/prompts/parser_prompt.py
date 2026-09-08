@@ -1,6 +1,5 @@
 import json
 import re
-from dataclasses import dataclass, field
 from textwrap import dedent
 from typing import Any, ClassVar
 
@@ -9,17 +8,13 @@ from llama.prompts.ocr_prompt import FIRST_COLUMNS
 from llama.prompts.prompt_file_parser import PromptFileParser
 
 
-@dataclass
 class ParserPrompt(BasePrompt):
     # -------------- ClassVars ---------------
     text_msg: ClassVar[str] = """Extract data from this `text`:\n\n"""
     # ----------------------------------------
 
-    json_schema: str = ""
-    columns: list[str] = field(default_factory=list)
-
     def __init__(self, **kwargs: dict[str, Any]) -> None:
-        prompt_parser = PromptFileParser.load(kwargs["prompt"])
+        prompt_parser = PromptFileParser(kwargs["prompt"])
         self.name = prompt_parser.name
         self.description = prompt_parser.description
 

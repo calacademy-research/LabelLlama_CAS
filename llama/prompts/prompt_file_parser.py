@@ -1,5 +1,4 @@
 import re
-from dataclasses import dataclass, field
 from pathlib import Path
 
 import yaml
@@ -26,35 +25,29 @@ def get_front_yaml(text: str, path: Path) -> dict:
     return front
 
 
-@dataclass
 class PromptFileParser:
-    name: str = ""
-    description: str = ""
-    system_msg: str = ""
-    json_schema: str = ""
-    llm_fields: list[FieldAction] = field(default_factory=list[FieldAction])
-    calc_fields: list[FieldAction] = field(default_factory=list[FieldAction])
-    req_fields: list[str] = field(default_factory=list)
-
-    @classmethod
-    def load(cls, prompt_path: Path) -> PromptFileParser:
+    def __init__(self, prompt_path: Path) -> None:
         with prompt_path.open() as f:
             text = f.read()
 
         front = get_front_yaml(text, prompt_path)
+        self.name: str = front["name"]
+        self.description: str = front["description"]
+        self.system_msg: str = ""
+        self.json_schema: str = ""
+        self.llm_fields: list[FieldAction] = []
+        self.calc_fields: list[FieldAction] = []
+        self.req_fields: list[str] = []
 
         # Split Markdown file into sections
         sections = re.split(r"^(?<!#)#\s", text, flags=re.MULTILINE)
-
-        sys_msg, schema = "", ""
-        llm_fields, calc_fields, req_fields = [], [], []
 
         for section in sections:
             section = section.strip()
 
             # Get system prompt section
             if SYS_MSG.match(section):
-                sys_msg = SYS_MSG.sub("", section).strip()
+                self.system_msg = SYS_MSG.sub("", section).strip()
 
             # Get output LLM fields list section
             elif LLM_FIELDS.match(section):
@@ -62,7 +55,7 @@ class PromptFileParser:
                 links = re.findall(r"\([\w/.]+\)", section)
                 for lnk in links:
                     lnk = lnk.removeprefix("(").removesuffix(")")
-                    llm_fields.append(FieldAction.load(lnk))
+                    self.llm_fields.append(FieldAction(lnk))
 
             # Get calculated fields
             elif CALC_FIELDS.match(section):
@@ -70,23 +63,13 @@ class PromptFileParser:
                 links = re.findall(r"\([\w/.]+\)", section)
                 for lnk in links:
                     lnk = lnk.removeprefix("(").removesuffix(")")
-                    calc_fields.append(FieldAction.load(lnk))
+                    self.calc_fields.append(FieldAction(lnk))
 
             # Get required fields
             elif REQ_FIELDS.match(section):
                 section = REQ_FIELDS.sub("", section).strip()
-                req_fields = [
+                self.req_fields = [
                     name
                     for ln in section.splitlines()
                     if (name := re.sub(r"^\s*\-\s*", "", ln).strip())
                 ]
-        prompt = cls(
-            name=front["name"],
-            description=front["description"],
-            system_msg=sys_msg,
-            json_schema=schema,
-            llm_fields=llm_fields,
-            calc_fields=calc_fields,
-            req_fields=req_fields,
-        )
-        return prompt

@@ -1,30 +1,18 @@
 import importlib
-from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
 
 
-@dataclass
 class FieldAction:
-    name: str
-    module: Path
-    columns: list[str] = field(default_factory=list[str])
-    field_class: Any = None
-
-    @classmethod
-    def load(cls, link: str) -> FieldAction:
+    def __init__(self, link: str) -> None:
         lnk = Path(link)
+
+        self.name = lnk.stem
+        self.module = lnk
 
         cls_name = lnk.stem[0].upper() + lnk.stem[1:]
         mod_name = link.removeprefix("../").removesuffix(".py").replace("/", ".")
         module = importlib.import_module(mod_name)
         field_class = getattr(module, cls_name)
 
-        action = cls(
-            name=lnk.stem,
-            module=lnk,
-            columns=field_class().get_field_names(),
-            field_class=getattr(module, cls_name),
-        )
-
-        return action
+        self.columns = field_class().get_field_names()
+        self.field_class = getattr(module, cls_name)
