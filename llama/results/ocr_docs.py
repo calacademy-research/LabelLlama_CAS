@@ -1,15 +1,13 @@
-import logging
-from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar
 
 import pandas as pd
 
-from llama.prompts.ocr_prompt import FIRST_COLUMNS
+from llama.prompts.prompt import FIRST_COLUMNS
 from llama.pylib import image_util
 from llama.results.model_status import ModelStatus
 
 if TYPE_CHECKING:
-    from llama.results.model_status import StatusCounts
+    from pathlib import Path
 
 
 def read_results_csv(path: Path, label: str) -> pd.DataFrame | None:
@@ -41,58 +39,32 @@ class OcrDocs:
         ocr_file: Path | None = None,
         limit: int | None = None,
     ) -> None:
-        self.ocr_file = ocr_file
-        self.limit = limit
+        image_paths = image_util.get_images(image_dir, image_glob)
 
-        self.image_paths = image_util.get_images(image_dir, image_glob)
+        self.ocr_records, self.file_mode = self.read_ocr_records(ocr_file)
 
-        self.ocr_records, self.file_mode = self._read_ocr_records(ocr_file)
-        self.already_done = self._get_already_read()
-
-        self.tasks = self._get_tasks()
-        self.tasks = self.tasks[:limit]
-
-    @property
-    def input_len(self) -> int:
-        return len(self.image_paths)
-
-    def _read_ocr_records(self, ocr_file: Path | None) -> tuple[list[dict], str]:
-        mode = "w"
-        records = []
-        if ocr_file and ocr_file.exists():
-            df = read_results_csv(ocr_file, "OCR file")
-            if df is not None:
-                missing = set(FIRST_COLUMNS) - set(df.columns)
-                if missing:
-                    missing_str = ", ".join(sorted(missing))
-                    msg = f"OCR file is missing required columns: {missing_str}"
-                    raise ValueError(msg)
-                mode = "a"
-                records = df.to_dict("records")
-        return records, mode
-
-    def _get_already_read(self) -> set[str]:
-        return {
+        already_done = {
             r.get("source")
             for r in self.ocr_records
             if r.get("source") and r.get("status", "").lower() == ModelStatus.SUCCESS
         }
 
-    def _get_tasks(self) -> list[Path]:
-        tasks = {p for p in self.image_paths if str(p) not in self.already_done}
+        tasks = {p for p in image_paths if str(p) not in already_done}
         tasks = sorted(tasks, key=str)
-        return tasks
+        self.tasks = tasks[:limit]
 
-    def log_what_to_do(self) -> None:
-        logging.info(f"There are {self.input_len} images")
-        logging.info(f"{len(self.already_done)} images were already done.")
-        if self.limit:
-            logging.info(f"Limited to {self.limit} images.")
-        logging.info(f"There are {len(self.tasks)} images left to process.")
-
-    def log_what_was_done(self, statuses: StatusCounts) -> None:
-        logging.info(
-            f"Total {len(self.tasks)} images processed "
-            f"with {statuses.get(ModelStatus.ERROR)} errors "
-            f"and {len(self.already_done)} images skipped."
-        )
+    def read_ocr_records(self, ocr_file: Path | None) -> tuple[list[dict], str]:
+        mode = "w"
+        records = []
+        if ocr_file and ocr_file.exists():
+            df = read_results_csv(ocr_file, "OCR file")
+            if df is None:
+                return [], mode
+            missing = set(FIRST_COLUMNS) - set(df.columns)
+            if missing:
+                missing_str = ", ".join(sorted(missing))
+                msg = f"OCR file is missing required columns: {missing_str}"
+                raise ValueError(msg)
+            mode = "a"
+            records = df.to_dict("records")
+        return records, mode

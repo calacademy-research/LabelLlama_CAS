@@ -13,7 +13,7 @@ from requests.exceptions import RequestException
 from tqdm import tqdm
 
 from llama.prompts.base_prompt import Thinking
-from llama.prompts.ocr_prompt import OcrPrompt
+from llama.prompts.prompt import Prompt
 from llama.pylib import fix_ocr, image_util, log
 from llama.pylib.thread_sessions import ThreadSessions
 from llama.results.model_status import ModelStatus, StatusCounts
@@ -26,9 +26,7 @@ def ocr_images(args: argparse.Namespace) -> None:
 
     docs = OcrDocs(args.image_dir, args.image_glob, args.ocr_file, args.limit)
 
-    docs.log_what_to_do()
-
-    prompt = OcrPrompt(**vars(args))
+    prompt = Prompt(**vars(args))
 
     statuses = StatusCounts()
 
@@ -70,12 +68,12 @@ def ocr_images(args: argparse.Namespace) -> None:
             finally:
                 sessions.close_all()
 
-    docs.log_what_was_done(statuses)
+    logging.log(f"There were {statuses.get(ModelStatus.ERROR)} errors")
     log.job_elapsed(job_began)
 
 
 def call_model(
-    prompt: OcrPrompt,
+    prompt: Prompt,
     source: Path | str,
     sessions: ThreadSessions,
     api_host: str,
@@ -91,7 +89,7 @@ def call_model(
         response = session.post(
             f"{api_host}/chat/completions",
             headers=prompt.headers(),
-            json=prompt.payload(mime_type, base64_image),
+            json=prompt.image_payload(mime_type, base64_image),
             timeout=timeout,
         )
         response.raise_for_status()

@@ -77,7 +77,6 @@ def downscale(
     source: Path | str,
     max_dim: int = 1200,
     quality: int = 85,
-    timeout: int = 30,
 ) -> tuple[str, str]:
     """
     Return (base64_image, mime_type) for a downscaled copy of the image.

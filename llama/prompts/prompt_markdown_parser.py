@@ -25,7 +25,7 @@ def get_front_yaml(text: str, path: Path) -> dict:
     return front
 
 
-class PromptFileParser:
+class PromptMarkdownParser:
     def __init__(self, prompt_path: Path) -> None:
         with prompt_path.open() as f:
             text = f.read()
@@ -34,7 +34,6 @@ class PromptFileParser:
         self.name: str = front["name"]
         self.description: str = front["description"]
         self.system_msg: str = ""
-        self.json_schema: str = ""
         self.llm_fields: list[FieldAction] = []
         self.calc_fields: list[FieldAction] = []
         self.req_fields: list[str] = []

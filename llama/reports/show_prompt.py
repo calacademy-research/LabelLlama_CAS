@@ -5,11 +5,11 @@ import textwrap
 from pathlib import Path
 
 from llama.prompts.base_prompt import Thinking
-from llama.prompts.parser_prompt import ParserPrompt
+from llama.prompts.parser_prompt import ParseTextPrompt
 
 
 def show(args: argparse.Namespace) -> None:
-    prompt = ParserPrompt(
+    prompt = ParseTextPrompt(
         prompt=args.prompt,
         model_id="",
         temperature=None,

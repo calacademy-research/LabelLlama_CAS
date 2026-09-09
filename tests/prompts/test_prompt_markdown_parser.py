@@ -3,7 +3,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from llama.prompts.prompt_file_parser import PromptFileParser, get_front_yaml
+from llama.prompts.prompt_markdown_parser import (
+    PromptMarkdownParser,
+    get_front_yaml,
+)
 
 PROMPTS_DIR = Path(__file__).resolve().parents[2] / "prompts"
 
@@ -16,7 +19,7 @@ def write_prompt(text: str) -> Path:
     return Path(name)
 
 
-class TestPromptFileParser(unittest.TestCase):
+class TestPromptMarkdownParser(unittest.TestCase):
     def test_front_yaml_extraction_01(self) -> None:
         text = (
             "---\n"
@@ -48,7 +51,7 @@ class TestPromptFileParser(unittest.TestCase):
             get_front_yaml("---\nname: ocr\n", Path("x.md"))
 
     def test_ocr_v2_sections_04(self) -> None:
-        parser = PromptFileParser(PROMPTS_DIR / "ocr_v2.md")
+        parser = PromptMarkdownParser(PROMPTS_DIR / "ocr_v2.md")
 
         assert parser.name == "ocr_v2"
         assert parser.description.startswith("OCR labels on images")
@@ -61,8 +64,8 @@ class TestPromptFileParser(unittest.TestCase):
         assert parser.calc_fields == []
         assert parser.req_fields == []
 
-    def test_diode_field_sections_05(self) -> None:
-        parser = PromptFileParser(PROMPTS_DIR / "diode_one_v1.md")
+    def test_diode_one_v1_field_sections_05(self) -> None:
+        parser = PromptMarkdownParser(PROMPTS_DIR / "diode_one_v1.md")
 
         llm_names = [f.name for f in parser.llm_fields]
         assert len(llm_names) == 25
@@ -82,7 +85,7 @@ class TestPromptFileParser(unittest.TestCase):
         )
         self.addCleanup(path.unlink, missing_ok=True)
 
-        parser = PromptFileParser(path)
+        parser = PromptMarkdownParser(path)
 
         assert parser.name == "t"
         assert parser.system_msg == "The body."
@@ -101,16 +104,16 @@ class TestPromptFileParser(unittest.TestCase):
             "- [eventDate](../llama/calc_fields/event/eventDate.py)\n"
             "\n"
             "# LLM Fields\n"
-            "- [utm](../llama/llm_fields/location/utm.py)\n"
+            "- [scientificName](../llama/llm_fields/taxon/scientificName.py)\n"
             "\n"
             "# System Message\n"
             "The body.\n"
         )
         self.addCleanup(path.unlink, missing_ok=True)
 
-        parser = PromptFileParser(path)
+        parser = PromptMarkdownParser(path)
 
-        assert [f.name for f in parser.llm_fields] == ["utm"]
+        assert [f.name for f in parser.llm_fields] == ["scientificName"]
         assert [f.name for f in parser.calc_fields] == ["eventDate"]
         assert parser.req_fields == ["utm"]
         assert parser.system_msg == "The body."
@@ -121,7 +124,7 @@ class TestPromptFileParser(unittest.TestCase):
         )
         self.addCleanup(path.unlink, missing_ok=True)
 
-        assert PromptFileParser(path).system_msg == "The body."
+        assert PromptMarkdownParser(path).system_msg == "The body."
 
 
 if __name__ == "__main__":

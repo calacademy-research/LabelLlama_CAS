@@ -1,20 +1,20 @@
 from typing import TYPE_CHECKING, Any
 
-from llama.prompts.prompt_file_parser import PromptFileParser
+from llama.prompts.prompt_markdown_parser import PromptMarkdownParser
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from llama.prompts.parser_prompt import ParserPrompt
+    from llama.prompts.prompt import Prompt
 
 REQUIRED_PARSED_COLUMNS = {"status", "source", "text"}
 
 
-class ParserCleaner:
+class TextCleaner:
     def __init__(self, prompt_path: Path) -> None:
         self.llm_field_classes: dict[str, Any] = []
         self.calc_field_classes: dict[str, Any] = []
-        prompt_parser = PromptFileParser(prompt_path)
+        prompt_parser = PromptMarkdownParser(prompt_path)
         self.llm_field_classes = {
             f.name: f.field_class for f in prompt_parser.llm_fields
         }
@@ -22,7 +22,7 @@ class ParserCleaner:
             f.name: f.field_class for f in prompt_parser.calc_fields
         }
 
-    def validate_columns(self, df_columns: list[str], prompt: ParserPrompt) -> None:
+    def validate_columns(self, df_columns: list[str], prompt: Prompt) -> None:
         missing_required = REQUIRED_PARSED_COLUMNS - set(df_columns)
         if missing_required:
             missing = ", ".join(sorted(missing_required))

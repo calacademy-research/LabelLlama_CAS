@@ -14,11 +14,10 @@ from requests.exceptions import RequestException
 from tqdm import tqdm
 
 from llama.prompts.base_prompt import Thinking
-from llama.prompts.parser_prompt import ParserPrompt
+from llama.prompts.prompt import Prompt
 from llama.pylib import fix_ocr, log
 from llama.pylib.thread_sessions import ThreadSessions
-from llama.result.model_status import StatusCounts
-from llama.results.model_status import ModelStatus
+from llama.results.model_status import ModelStatus, StatusCounts
 from llama.results.parsed_docs import ParsedDocs
 from llama.results.task_writer import TaskWriter
 
@@ -26,12 +25,9 @@ from llama.results.task_writer import TaskWriter
 def parse_text(args: argparse.Namespace) -> None:
     job_began = log.job_began(args.log_file, args=args)
 
-    prompt = ParserPrompt(**vars(args))
+    prompt = Prompt(**vars(args))
 
     docs = ParsedDocs(args.parsed_file, args.ocr_file, args.limit)
-    docs.log_what_to_do()
-
-    prompt = ParserPrompt(args.prompt)
 
     statuses = StatusCounts()
 
@@ -75,12 +71,12 @@ def parse_text(args: argparse.Namespace) -> None:
             finally:
                 sessions.close_all()
 
-    docs.log_what_was_done(statuses)
+    logging.log(f"There were {statuses.get(ModelStatus.ERROR)} errors")
     log.job_elapsed(job_began)
 
 
 def call_model(
-    prompt: ParserPrompt,
+    prompt: Prompt,
     ocr_result: dict,
     sessions: ThreadSessions,
     api_host: str,
@@ -97,7 +93,7 @@ def call_model(
         response = session.post(
             f"{api_host}/chat/completions",
             headers=prompt.headers(),
-            json=prompt.payload(text),
+            json=prompt.text_payload(text),
             timeout=timeout,
         )
         response.raise_for_status()
@@ -160,7 +156,7 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         required=True,
         metavar="path",
         help="""A markdown file with a prompt and list of fields to parse.
-            For example prompts/llm_fields/herbarium_v1.md.""",
+            For example prompts/herbarium_v2.md.""",
     )
     model_group = arg_parser.add_argument_group("model options")
     model_group.add_argument(

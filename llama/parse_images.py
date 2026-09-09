@@ -11,11 +11,12 @@ from datetime import datetime
 from json.decoder import JSONDecodeError
 from pathlib import Path
 
+from dotenv import load_dotenv
 from requests.exceptions import RequestException
 from tqdm import tqdm
 
 from llama.prompts.base_prompt import Thinking
-from llama.prompts.parser_prompt import ParserPrompt
+from llama.prompts.prompt import Prompt
 from llama.pylib import image_util, log
 from llama.pylib.thread_sessions import ThreadSessions
 from llama.results.model_status import ModelStatus, StatusCounts
@@ -26,16 +27,15 @@ from llama.results.task_writer import TaskWriter
 def extract(args: argparse.Namespace) -> None:
     job_began = log.job_began(args.log_file, args=args)
 
-    prompt = ParserPrompt(**vars(args))
+    prompt = Prompt(**vars(args))
 
-    docs = OcrDocs(args.image_dir, args.image_glob, args.ocr_file, args.limit)
-    docs.log_what_to_do()
+    docs = OcrDocs(args.image_dir, args.image_glob, args.parsed_file, args.limit)
 
     statuses = StatusCounts()
 
     args.parsed_file.parent.mkdir(parents=True, exist_ok=True)
 
-    with args.extractions.open(docs.file_mode) as output_file:
+    with args.parsed_file.open(docs.file_mode) as output_file:
         writer = csv.DictWriter(output_file, prompt.columns)
         if docs.file_mode == "w":
             writer.writeheader()
@@ -65,12 +65,12 @@ def extract(args: argparse.Namespace) -> None:
             finally:
                 sessions.close_all()
 
-    docs.log_what_was_done(statuses)
+    logging.log(f"There were {statuses.get(ModelStatus.ERROR)} errors")
     log.job_elapsed(job_began)
 
 
 def call_model(
-    prompt: ParserPrompt,
+    prompt: Prompt,
     source: Path | str,
     sessions: ThreadSessions,
     api_host: str,
@@ -79,13 +79,13 @@ def call_model(
     began = datetime.now()
 
     try:
-        base64_image, mime_type = image_util.load_image(source, timeout)
+        base64_image, mime_type = image_util.load_image(source)
 
         session = sessions.get()
         response = session.post(
             f"{api_host}/chat/completions",
             headers=prompt.headers(),
-            json=prompt.payload(mime_type, base64_image),
+            json=prompt.image_payload(mime_type, base64_image),
             timeout=timeout,
         )
         response.raise_for_status()
@@ -147,7 +147,7 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         "--parsed-file",
         type=Path,
         required=True,
-        metavar="path",
+        metavar="PATH",
         help="""Write the LM results to this CSV file.
             This appends data to the file.""",
     )
@@ -156,7 +156,7 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         "--prompt",
         type=Path,
         required=True,
-        metavar="path",
+        metavar="PATH",
         help="""A markdown file with a prompt and list of fields to parse.
             For example prompts/diode_one_v1.md.""",
     )
@@ -164,7 +164,7 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     model_group.add_argument(
         "--model-id",
         default="unsloth/Qwen3.6-35B-A3B-MTP-GGUF:UD-Q4_K_XL",
-        metavar="string",
+        metavar="STRING",
         help="""Use this language model. (default: %(default)s) There is a speed vs.
             cost trade off between local and hosted models. Local models are cheaper
             but hosted models are much faster. The model must support images.""",
@@ -172,14 +172,14 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     model_group.add_argument(
         "--api-host",
         default="http://localhost:9931/v1",
-        metavar="string",
+        metavar="STRING",
         help="""URL for the LM model. (default: %(default)s)""",
     )
     model_group.add_argument(
         "--threads",
         type=int,
         default=4,
-        metavar="int",
+        metavar="INT",
         help="""How many parallel threads to run. (default: %(default)s) For
             ChatGPT-nano I will increase this to 20 or more, and for a local model
             I will reduce this to 4 or less.""",
@@ -187,13 +187,13 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     model_group.add_argument(
         "--temperature",
         type=float,
-        metavar="float",
+        metavar="FLOAT",
         help="""Model's temperature.""",
     )
     model_group.add_argument(
         "--max-tokens",
         type=int,
-        metavar="int",
+        metavar="INT",
         help="""The model's response maximum tokens.
             I use this to truncate model loops.""",
     )
@@ -201,7 +201,7 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         "--timeout",
         type=int,
         default=300,
-        metavar="int",
+        metavar="INT",
         help="""How long to wait for the LM to respond in seconds.
             (default: %(default)s) 5 minutes is a life time for extracting data
             from an image.""",
@@ -216,27 +216,25 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     logging_group.add_argument(
         "--log-file",
         type=Path,
-        metavar="path",
+        metavar="PATH",
         help="""Append logging notices to this file. It also logs the script arguments
             so you may use this to keep track of what you did.""",
     )
     logging_group.add_argument(
         "--notes",
-        metavar="string",
+        metavar="STRING",
         help="""Notes for logging. They only appear in the log file.""",
     )
     debugging_group = arg_parser.add_argument_group("debugging options")
     debugging_group.add_argument(
         "--limit",
         type=int,
-        metavar="int",
+        metavar="INT",
         help="""Limit to this many images.""",
     )
     ns = arg_parser.parse_args(args)
-    if not ns.image_dir and not ns.image_glob and not ns.input_file:
-        arg_parser.error(
-            "one of --image-dir, --image-glob, or --input-file is required"
-        )
+    if not ns.image_dir and not ns.image_glob:
+        arg_parser.error("one of --image-dir or --image-glob")
     if ns.image_dir and not ns.image_dir.is_dir():
         arg_parser.error(f"--image-dir is not a directory: {ns.image_dir}")
     if not ns.prompt.is_file():
@@ -253,5 +251,6 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
 
 
 if __name__ == "__main__":
+    load_dotenv()
     ARGS = parse_args()
     extract(ARGS)

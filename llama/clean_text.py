@@ -8,8 +8,8 @@ from pathlib import Path
 import pandas as pd
 from tqdm import tqdm
 
-from llama.prompts.parser_cleaner import ParserCleaner
-from llama.prompts.parser_prompt import ParserPrompt
+from llama.prompts.prompt import Prompt
+from llama.prompts.text_cleaner import TextCleaner
 from llama.pylib import log
 from llama.results.model_status import ModelStatus
 
@@ -19,8 +19,8 @@ def postprocess_fields(args: argparse.Namespace) -> None:
 
     df = pd.read_csv(args.parsed_file, dtype=str).fillna("")
 
-    prompt = ParserPrompt(**vars(args))
-    cleaner = ParserCleaner(prompt)
+    prompt = Prompt(**vars(args))
+    cleaner = TextCleaner(prompt)
     cleaner.validate_columns(df.columns, prompt)
 
     llm_columns = cleaner.get_llm_columns(df.columns)
