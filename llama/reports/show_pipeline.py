@@ -50,7 +50,11 @@ def build_card(number: int, ocr_row: dict, clean_row: dict | None) -> dict:
     if clean_row is None:
         fields: list[tuple[str, str]] = []
     else:
-        fields = [(k, v) for k, v in clean_row.items() if k not in ("text", "source")]
+        fields = [
+            (k, v)
+            for k, v in clean_row.items()
+            if k not in ("text", "source", "status", "elapsed")
+        ]
 
     return {
         "number": number,
@@ -65,12 +69,14 @@ def build_card(number: int, ocr_row: dict, clean_row: dict | None) -> dict:
 
 def show_pipeline(args: argparse.Namespace) -> None:
     """Match OCR and cleaned records by source and write a single-file HTML report."""
-    job_began = log.job_began(args.log_file, args=args)
+    job_began = log.job_began(None, args=args)
 
-    ocr_records = pd.read_csv(args.ocr_file, dtype=str).fillna("").to_dict("records")
-    clean_records = (
-        pd.read_csv(args.clean_file, dtype=str).fillna("").to_dict("records")
-    )
+    ocr_df = pd.read_csv(args.ocr_file, dtype=str).fillna("")
+    _check_columns(args.ocr_file, ocr_df, {"source", "text"})
+    ocr_records = ocr_df.to_dict("records")
+    clean_df = pd.read_csv(args.clean_file, dtype=str).fillna("")
+    _check_columns(args.clean_file, clean_df, {"source"})
+    clean_records = clean_df.to_dict("records")
     clean_by_source: dict[str, dict] = {}
     for row in clean_records:
         clean_by_source.setdefault(row["source"], row)
@@ -119,6 +125,13 @@ def show_pipeline(args: argparse.Namespace) -> None:
     log.job_elapsed(job_began)
 
 
+def _check_columns(csv_file: Path, df: pd.DataFrame, required: set[str]) -> None:
+    missing = required - set(df.columns)
+    if missing:
+        missing_str = ", ".join(sorted(missing))
+        raise ValueError(f"{csv_file} is missing required columns: {missing_str}")
+
+
 def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     arg_parser = argparse.ArgumentParser(
         allow_abbrev=True,
@@ -152,19 +165,6 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         required=True,
         metavar="path",
         help="""Write the single-file HTML report to this path.""",
-    )
-    logging_group = arg_parser.add_argument_group("logging options")
-    logging_group.add_argument(
-        "--log-file",
-        type=Path,
-        metavar="string",
-        help="""Append logging notices to this file. It also logs the script arguments
-            so you may use this to keep track of what you did.""",
-    )
-    logging_group.add_argument(
-        "--notes",
-        metavar="string",
-        help="""Notes for logging. They only appear in the log file.""",
     )
     debugging_group = arg_parser.add_argument_group("debugging options")
     debugging_group.add_argument(

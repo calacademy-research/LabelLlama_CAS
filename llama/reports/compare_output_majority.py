@@ -23,12 +23,12 @@ Output format: more or less
 |      |         |           | llm 1   | value 1.1.1 | value 1.2.1 | ... | value 1.n.1 |
 | text | /path/1 |     1     | llm 2   | value 1.1.2 | value 1.2.2 | ... | value 1.n.2 |
 |      |         |           | llm 3   | value 1.1.3 | value 1.2.3 | ... | value 1.n.3 |
-|      |         |           | winner  | winner1.1.3 | winner1.2.3 | ... | winner1.n.3 |
+|      |         |           | winner  | winner1.1   | winner1.2   | ... | winner1.n   |
 |------|---------|-----------|---------|-------------|-------------| ... |-------------|
 |      |         |           | llm 1   | value 2.1.1 | value 2.2.1 | ... | value 2.n.1 |
 | text | /path/2 |     2     | llm 2   | value 2.2.1 | value 2.2.2 | ... | value 2.n.2 |
 |      |         |           | llm 3   | score 2.1.3 | score 2.2.3 | ... | score 2.n.3 |
-|      |         |           | winner  | winner2.1.3 | winner2.2.3 | ... | winner2.n.3 |
+|      |         |           | winner  | winner2.1   | winner2.2   | ... | winner2.n   |
 """
 
 import argparse
@@ -43,7 +43,14 @@ import pandas as pd
 
 from llama.pylib import log
 
-FIRST_COLUMNS = ["text", "source", "row_group", "row_type"]
+FIRST_COLUMNS = [
+    "status",
+    "source",
+    "elapsed",
+    "text",
+    "row_group",
+    "row_type",
+]
 
 
 @dataclass
@@ -64,6 +71,7 @@ def compare_model_winner(args: argparse.Namespace) -> None:
 
     # Read OCR data
     ocr_df = pd.read_csv(args.ocr_file, dtype=str).fillna("")
+    _check_columns(args.ocr_file, ocr_df, {"source", "text"})
     ocr_by_image = {o["source"]: o for o in ocr_df.to_dict("records")}
 
     # Init 2 of the 3 indexes for the quasi 3D struct, see this script's doc string
@@ -98,6 +106,8 @@ def compare_model_winner(args: argparse.Namespace) -> None:
                 "row_group": str(i),
             }
         )
+        group.winner_row["row_type"] = "winner"
+
         # Build parse rows
         for parse_file in args.parse_file:
             stem = parse_file.stem
@@ -111,12 +121,13 @@ def compare_model_winner(args: argparse.Namespace) -> None:
             values = defaultdict(list)
             for row in group.parse_rows:
                 values[row[col]].append(row["row_type"])
-            counts = sorted(values.items(), key=lambda v: len(v[1]))
+            total_votes = sum(len(v) for v in values.values())
+            counts = sorted(values.items(), key=lambda v: -len(v[1]))
             winner = counts[0]
             result = winner[0]
             if len(counts) > 1 and len(winner[1]) == len(counts[1][1]):
                 result = "<no_winner>"
-            if args.majority and float(len(winner[1])) < len(values) / 2.0:
+            if args.majority and len(winner[1]) < total_votes / 2.0:
                 result = "<no_winner>"
             result = result or "<empty>"
             group.winner_row[col] = result
@@ -136,20 +147,29 @@ def compare_model_winner(args: argparse.Namespace) -> None:
         f.stem: {"row_group": "Total", "row_type": f.stem, "average": 0.0}
         for f in args.parse_file
     }
+    n_images = len(image_paths) or 1
     for col, counts in tally.items():
         for stem, count in counts.items():
-            totals[stem][col] = count / len(image_paths)
+            totals[stem][col] = count / n_images
             totals[stem]["average"] += totals[stem][col]
     for counts in totals.values():
-        counts["average"] /= len(tally)
+        counts["average"] /= len(tally) or 1
 
     summary_df = pd.DataFrame(totals.values())
 
+    args.output_ods.parent.mkdir(parents=True, exist_ok=True)
     with pd.ExcelWriter(args.output_ods, engine="odf") as writer:
         detail_df.to_excel(writer, sheet_name="detail", index=False)
         summary_df.to_excel(writer, sheet_name="summary", index=False)
 
     log.job_elapsed(job_began)
+
+
+def _check_columns(ocr_file: Path, df: pd.DataFrame, required: set[str]) -> None:
+    missing = required - set(df.columns)
+    if missing:
+        missing_str = ", ".join(sorted(missing))
+        raise ValueError(f"{ocr_file} is missing required columns: {missing_str}")
 
 
 def parse_args(args: list[str] | None = None) -> argparse.Namespace:
@@ -187,7 +207,8 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         type=Path,
         required=True,
         metavar="path",
-        help="""Write the comparison results to this spreadsheet.""",
+        help="""Write the comparison results to this ODS file. It must end in
+            .ods.""",
     )
     winner_group = arg_parser.add_argument_group("Majority options")
     winner_group.add_argument(
@@ -216,6 +237,8 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         help="""Limit to this many row groups.""",
     )
     ns = arg_parser.parse_args(args)
+    if ns.output_ods.suffix.lower() != ".ods":
+        arg_parser.error(f"--output-ods must end in .ods: {ns.output_ods}")
     return ns
 
 

@@ -39,14 +39,23 @@ from tqdm import tqdm
 
 from llama.pylib import log
 
-FIRST_COLUMNS = ["text", "image_path", "row_group", "row_type", "source"]
-GBIF_SEARCH_MD = Path("llama") / "reports" / "gbif_search.md"
+FIRST_COLUMNS = [
+    "status",
+    "source",
+    "elapsed",
+    "text",
+    "image_path",
+    "row_group",
+    "row_type",
+]
+GBIF_SEARCH_MD = Path(__file__).parent / "templates" / "gbif_search.md"
 
 
 # ----------------------------------------------------------------------------------
 class ScoreCat(Enum):
     aligned_both_full = auto()
     aligned_both_empty = auto()
+    aligned_gbif_empty = auto()
     aligned_parse_empty = auto()
     not_aligned_parse_empty = auto()
     search_fail = auto()
@@ -57,6 +66,7 @@ class ScoreCat(Enum):
 class Tally:
     aligned_both_full_count: int = 0
     aligned_both_empty_count: int = 0
+    aligned_gbif_empty_count: int = 0
     aligned_parse_empty_count: int = 0
     aligned_search_fail_count: int = 0
     aligned_search_success_count: int = 0
@@ -70,6 +80,7 @@ class Tally:
         return (
             self.aligned_both_full_count
             + self.aligned_both_empty_count
+            + self.aligned_gbif_empty_count
             + self.aligned_parse_empty_count
             + self.aligned_search_fail_count
             + self.aligned_search_success_count
@@ -124,6 +135,10 @@ class Score:
 
                         case ScoreCat.aligned_both_empty:
                             tally_.aligned_both_empty_count += 1
+                            tally_.score_sum += score.score
+
+                        case ScoreCat.aligned_gbif_empty:
+                            tally_.aligned_gbif_empty_count += 1
                             tally_.score_sum += score.score
 
                         case ScoreCat.aligned_parse_empty:
@@ -184,58 +199,45 @@ class RowGroup:
     parse_rows: list[dict[str, str]] = field(default_factory=list)
     score_rows: list[dict[str, Any]] = field(default_factory=list)
 
-    def format(self, output_type: str) -> RowGroup:
-        self._format_gbif_row(output_type)
-        self._format_score_rows(output_type)
+    def format(self) -> RowGroup:
+        self._format_gbif_row()
+        self._format_score_rows()
         return self
 
-    def _format_gbif_row(self, output_type: str) -> None:
+    def _format_gbif_row(self) -> None:
         for col, scores in self.gbif_row.items():
             if col == "row_type":
                 continue
-            match output_type:
-                case ".html":
-                    values = [
-                        f"<span class='label'>{s.gbif_field}</span> {s.gbif_data}"
-                        for s in scores
-                    ]
-                    self.gbif_row[col] = "<br/>".join(values)
-                case ".ods":
-                    self.gbif_row[col] = ",\n".join(
-                        [f"{s.gbif_field} {s.gbif_data}" for s in scores]
-                    )
+            self.gbif_row[col] = ",\n".join(
+                [f"{s.gbif_field} {s.gbif_data}" for s in scores]
+            )
 
-    def _format_score_rows(self, output_type: str) -> None:
+    def _format_score_rows(self) -> None:
         for score_row in self.score_rows:
             for col, score in score_row.items():
                 if col == "row_type":
                     continue
-                match output_type:
-                    case ".html":
-                        score_row[col] = (
-                            f"<span class='label'>{score.gbif_field}</span> "
-                            f"{score.method} {score.score:0.2f}"
-                        )
-                    case ".ods":
-                        value = f"{score.score:0.2f}"
-                        score_row[col] = f"{score.gbif_field} {score.method} {value}"
+                value = f"{score.score:0.2f}"
+                score_row[col] = f"{score.gbif_field} {score.method} {value}"
 
 
 # ----------------------------------------------------------------------------------
 def score_against_gbif(args: argparse.Namespace) -> None:
-    """Compare LLM outputs against gbif data and write an HTML report."""
+    """Compare LLM outputs against gbif data and write an ODS report."""
     job_began = log.job_began(args.log_file, args=args)
 
     # Read OCR data
     ocr_df = pd.read_csv(args.ocr_file, dtype=str).fillna("")
+    _check_columns(args.ocr_file, ocr_df, {"source", "text"})
     ocr_by_image = {o["source"]: o for o in ocr_df.to_dict("records")}
 
     # Read GBIF data
     gbif_df = pd.read_csv(args.gbif_file, dtype=str).fillna("")
+    _check_columns(args.gbif_file, gbif_df, {"source", "identifier"})
     gbif_by_image = {g["source"]: g for g in gbif_df.to_dict("records")}
 
     # Init 2 of the 3 indexes for the quasi 3D struct, see this script's doc string
-    image_paths = set(gbif_by_image)
+    image_paths = set(gbif_by_image) & set(ocr_by_image)
     column_keys = {}
 
     # Get parsed data
@@ -258,8 +260,6 @@ def score_against_gbif(args: argparse.Namespace) -> None:
     # If the gbif cells do not match the llm cells then search for aligned data in gbif
     gbif_search = _get_gbif_search()
 
-    output_type = args.output_csv.suffix.lower()
-
     # Build report lines
     row_groups: list[RowGroup] = []
     for i, image_path in enumerate(image_paths, 1):
@@ -281,8 +281,9 @@ def score_against_gbif(args: argparse.Namespace) -> None:
         # Build the parse and score rows
         for parse_file in args.parse_file:
             # Build LLM row. It just holds the LLM results as is
+            parse_record = parsed_data[parse_file.stem][image_path]
             parse_row: dict[str, str] = {"row_type": parse_file.stem} | {
-                c: parsed_data[parse_file.stem][image_path][c] for c in columns
+                c: parse_record.get(c, "") for c in columns
             }
             row_group.parse_rows.append(parse_row)
 
@@ -303,11 +304,13 @@ def score_against_gbif(args: argparse.Namespace) -> None:
     logging.info("Tally scores")
     stats = Score.tally(row_groups)
 
+    args.output_ods.parent.mkdir(parents=True, exist_ok=True)
+
     for row_group in tqdm(row_groups, desc="format"):
-        row_group.format(output_type)
+        row_group.format()
 
     _write_ods(
-        ods_file=args.output_csv,
+        ods_file=args.output_ods,
         row_groups=row_groups,
         gbif_search=gbif_search,
         stats=stats,
@@ -335,8 +338,15 @@ def _calc_score(
                 is_aligned=True,
             )
         if not expect:
-            is_aligned = True
-            # return Score(cat=ScoreCat.aligned_gbif_empty)
+            # GBIF has no value for this column but the LLM produced one.
+            # That is a mismatch, so score it as 0.
+            return Score(
+                cat=ScoreCat.aligned_gbif_empty,
+                score=0.0,
+                method="GE",
+                gbif_field=col,
+                is_aligned=True,
+            )
         if not actual:
             return Score(cat=ScoreCat.aligned_parse_empty, is_aligned=True)
         if expect and actual:
@@ -377,6 +387,13 @@ def _calc_score(
             max_score = max(current, max_score)
 
     return max_score
+
+
+def _check_columns(ocr_file: Path, df: pd.DataFrame, required: set[str]) -> None:
+    missing = required - set(df.columns)
+    if missing:
+        missing_str = ", ".join(sorted(missing))
+        raise ValueError(f"{ocr_file} is missing required columns: {missing_str}")
 
 
 # ----------------------------------------------------------------------------------
@@ -476,11 +493,12 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         help="""The cleaned LLM parse file. You may compare several files at once.""",
     )
     io_group.add_argument(
-        "--output-csv",
+        "--output-ods",
         type=Path,
         required=True,
         metavar="path",
-        help="""Write the comparison results to this CSV file.""",
+        help="""Write the comparison results to this ODS file. It must end in
+            .ods.""",
     )
     settings_group = arg_parser.add_argument_group("program settings")
     settings_group.add_argument(
@@ -513,6 +531,8 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         help="""Limit to this many row groups.""",
     )
     ns = arg_parser.parse_args(args)
+    if ns.output_ods.suffix.lower() != ".ods":
+        arg_parser.error(f"--output-ods must end in .ods: {ns.output_ods}")
     return ns
 
 

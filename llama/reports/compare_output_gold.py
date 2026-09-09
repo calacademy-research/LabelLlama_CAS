@@ -28,8 +28,8 @@ from pathlib import Path
 import pandas as pd
 
 from llama.llm_fields.llm_field import LlmField
-from llama.prompts.ocr_prompt import FIRST_COLUMNS
-from llama.prompts.parser_cleaner import ParserCleaner
+from llama.prompts.prompt import FIRST_COLUMNS
+from llama.prompts.text_cleaner import TextCleaner
 from llama.pylib import log
 
 
@@ -68,7 +68,7 @@ class RowGroup:
 
 def score_against_gold(args: argparse.Namespace) -> None:
     """
-    Compare LLM outputs against a gold standard and write an HTML report.
+    Compare LLM outputs against a gold standard and write a CSV report.
 
     I'm building table with groups of rows. Each group of rows is indexed by
     the image source (its path).
@@ -85,11 +85,11 @@ def score_against_gold(args: argparse.Namespace) -> None:
 
     # Init row and column indexes
     image_paths = set(gold_by_image)
-    columns = dict.fromkeys(gold_by_image)
+    columns = dict.fromkeys(gold_df.columns)
 
     # Get parsed data
     parsed_data = {}
-    for parse_file in args.llm_file:
+    for parse_file in args.parse_file:
         llm_df = pd.read_csv(parse_file, dtype=str).fillna("")
         columns |= dict.fromkeys(llm_df.columns)
         image_paths &= set(llm_df["source"])
@@ -105,7 +105,7 @@ def score_against_gold(args: argparse.Namespace) -> None:
     columns = [k for k in columns if k not in FIRST_COLUMNS]
 
     # Load scoring classes
-    llm_field_classes = ParserCleaner(args.prompt).llm_field_classes
+    llm_field_classes = TextCleaner(args.prompt_md).llm_field_classes
 
     # Build rows for each group
     row_groups = []
@@ -127,9 +127,10 @@ def score_against_gold(args: argparse.Namespace) -> None:
         # Build parse rows and score rows
         for parse_file in args.parse_file:
             stem = parse_file.stem
+            row = parsed_data[stem].get(image_path, {})
             # Build an LLM row
             group.parse_rows.append(
-                {"row_type": stem, **{c: parsed_data[stem].get(c, "") for c in columns}}
+                {"row_type": stem, **{c: row.get(c, "") for c in columns}}
             )
             # Build a score row
             score_row = {"row_type": f"score {stem}"}
@@ -137,8 +138,8 @@ def score_against_gold(args: argparse.Namespace) -> None:
                 field_class = llm_field_classes.get(col, LlmField)
                 score = field_class.score(
                     str(gold.get(col, "")),
-                    str(parsed_data[stem].get(col, "")),
-                    parsed_data[stem],
+                    str(row.get(col, "")),
+                    row,
                 )
                 score_row[col] = f"{score:0.2f}"
             group.score_rows.append(score_row)
@@ -150,6 +151,7 @@ def score_against_gold(args: argparse.Namespace) -> None:
         rows += group.flatten()
 
     df = pd.DataFrame(rows)
+    args.output_csv.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(args.output_csv, index=False)
 
     log.job_elapsed(job_began)
@@ -196,7 +198,7 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     )
     prompt_group = arg_parser.add_argument_group("prompt options")
     prompt_group.add_argument(
-        "--prompt",
+        "--prompt-md",
         type=Path,
         required=True,
         metavar="path",
@@ -215,6 +217,13 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         "--notes",
         metavar="string",
         help="""Notes for logging.""",
+    )
+    debugging_group = arg_parser.add_argument_group("debugging options")
+    debugging_group.add_argument(
+        "--limit",
+        type=int,
+        metavar="int",
+        help="""Limit to this many records.""",
     )
     ns = arg_parser.parse_args(args)
     return ns
