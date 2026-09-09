@@ -82,7 +82,7 @@ class Prompt:
 
     def payload_template(self, **kwargs: dict[str, Any]) -> dict:
         payload = {
-            "model": kwargs["model_id"],
+            "model": kwargs.get("model_id", ""),
             "messages": [
                 {"role": "system", "content": self.system_msg},
                 {"role": "replace me"},
@@ -143,3 +143,10 @@ class Prompt:
             schema = re.sub(r'"required": \[[^\]]+\]', replace, schema)
 
         return schema
+
+    def parse_model_json(self, content: str) -> dict:
+        content = content.replace("```json", "").replace("```", "")
+        extracted = json.loads(content)
+        if not isinstance(extracted, dict):
+            raise TypeError("Model response JSON must be an object")
+        return extracted

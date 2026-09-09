@@ -15,8 +15,7 @@ from dotenv import load_dotenv
 from requests.exceptions import RequestException
 from tqdm import tqdm
 
-from llama.prompts.base_prompt import Thinking
-from llama.prompts.prompt import Prompt
+from llama.prompts.prompt import FIRST_COLUMNS, Prompt, Thinking
 from llama.pylib import image_util, log
 from llama.pylib.thread_sessions import ThreadSessions
 from llama.results.model_status import ModelStatus, StatusCounts
@@ -65,7 +64,7 @@ def extract(args: argparse.Namespace) -> None:
             finally:
                 sessions.close_all()
 
-    logging.log(f"There were {statuses.get(ModelStatus.ERROR)} errors")
+    logging.info(f"There were {statuses.get(ModelStatus.ERROR)} errors")
     log.job_elapsed(job_began)
 
 
@@ -99,6 +98,7 @@ def call_model(
         status = ModelStatus.SUCCESS
 
     except (
+        AttributeError,
         IndexError,
         JSONDecodeError,
         KeyError,
@@ -117,7 +117,7 @@ def call_model(
         "source": str(source),
         "elapsed": str(log.task_elapsed(began)),
         "text": text,
-    } | extracted
+    } | {k: v for k, v in extracted.items() if k.lower() not in FIRST_COLUMNS}
 
     return result
 

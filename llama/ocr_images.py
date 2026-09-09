@@ -12,8 +12,7 @@ from dotenv import load_dotenv
 from requests.exceptions import RequestException
 from tqdm import tqdm
 
-from llama.prompts.base_prompt import Thinking
-from llama.prompts.prompt import Prompt
+from llama.prompts.prompt import Prompt, Thinking
 from llama.pylib import fix_ocr, image_util, log
 from llama.pylib.thread_sessions import ThreadSessions
 from llama.results.model_status import ModelStatus, StatusCounts
@@ -68,7 +67,7 @@ def ocr_images(args: argparse.Namespace) -> None:
             finally:
                 sessions.close_all()
 
-    logging.log(f"There were {statuses.get(ModelStatus.ERROR)} errors")
+    logging.info(f"There were {statuses.get(ModelStatus.ERROR)} errors")
     log.job_elapsed(job_began)
 
 

@@ -13,8 +13,7 @@ from dotenv import load_dotenv
 from requests.exceptions import RequestException
 from tqdm import tqdm
 
-from llama.prompts.base_prompt import Thinking
-from llama.prompts.prompt import Prompt
+from llama.prompts.prompt import FIRST_COLUMNS, Prompt, Thinking
 from llama.pylib import fix_ocr, log
 from llama.pylib.thread_sessions import ThreadSessions
 from llama.results.model_status import ModelStatus, StatusCounts
@@ -27,9 +26,13 @@ def parse_text(args: argparse.Namespace) -> None:
 
     prompt = Prompt(**vars(args))
 
-    docs = ParsedDocs(args.parsed_file, args.ocr_file, args.limit)
+    docs = ParsedDocs(
+        args.parsed_file, args.ocr_file, args.limit, expected_columns=prompt.columns
+    )
 
     statuses = StatusCounts()
+
+    args.parsed_file.parent.mkdir(parents=True, exist_ok=True)
 
     with args.parsed_file.open(docs.file_mode) as output_file:
         writer = csv.DictWriter(output_file, prompt.columns)
@@ -71,7 +74,7 @@ def parse_text(args: argparse.Namespace) -> None:
             finally:
                 sessions.close_all()
 
-    logging.log(f"There were {statuses.get(ModelStatus.ERROR)} errors")
+    logging.info(f"There were {statuses.get(ModelStatus.ERROR)} errors")
     log.job_elapsed(job_began)
 
 
@@ -84,11 +87,9 @@ def call_model(
 ) -> dict:
     began = datetime.now()
 
-    text = fix_ocr.prepare_for_parse(ocr_result["text"])
-
     extracted = {}
-
     try:
+        text = fix_ocr.prepare_for_parse(ocr_result["text"])
         session = sessions.get()
         response = session.post(
             f"{api_host}/chat/completions",
@@ -105,6 +106,7 @@ def call_model(
         status = ModelStatus.SUCCESS
 
     except (
+        AttributeError,
         RequestException,
         JSONDecodeError,
         ValueError,
@@ -121,7 +123,7 @@ def call_model(
         "source": ocr_result["source"],
         "elapsed": str(log.task_elapsed(began)),
         "text": text,
-    } | extracted
+    } | {k: v for k, v in extracted.items() if k.lower() not in FIRST_COLUMNS}
 
     return result
 

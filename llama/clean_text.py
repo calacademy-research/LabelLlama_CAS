@@ -20,15 +20,15 @@ def postprocess_fields(args: argparse.Namespace) -> None:
     df = pd.read_csv(args.parsed_file, dtype=str).fillna("")
 
     prompt = Prompt(**vars(args))
-    cleaner = TextCleaner(prompt)
+    cleaner = TextCleaner(args.prompt)
     cleaner.validate_columns(df.columns, prompt)
 
-    llm_columns = cleaner.get_llm_columns(df.columns)
+    llm_columns = cleaner.get_llm_columns(list(df.columns))
     calc_columns = cleaner.get_calc_columns()
     output_columns = cleaner.get_output_columns()
 
     input_rows = [
-        r for r in df.to_dict("records") if r["status"] == ModelStatus.SUCCESS
+        r for r in df.to_dict("records") if ModelStatus.is_success(r.get("status"))
     ]
     input_rows = input_rows[: args.limit]
 
@@ -53,13 +53,12 @@ def postprocess_fields(args: argparse.Namespace) -> None:
             for column in calc_columns:
                 field_action = cleaner.calc_field_classes[column]
 
-                in_data = {k: in_row.get(k) for k in field_action.get_field_names()}
+                in_data = {k: out_row.get(k) for k in field_action.get_field_names()}
 
                 out_field = field_action(out_row, **in_data)
-                out_data = {
+                out_row |= {
                     k: getattr(out_field, k) for k in out_field.get_visible_fields()
                 }
-                out_row |= out_data
 
             output_rows.append(out_row)
         except Exception:
