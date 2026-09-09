@@ -13,8 +13,8 @@ REQUIRED_PARSED_COLUMNS = {"status", "source", "text"}
 
 
 class TextCleaner:
-    def __init__(self, prompt_path: Path) -> None:
-        prompt_parser = PromptMarkdownParser(prompt_path)
+    def __init__(self, prompt_md: Path) -> None:
+        prompt_parser = PromptMarkdownParser(prompt_md)
         self.llm_field_classes = {
             f.name: f.field_class for f in prompt_parser.llm_fields
         }

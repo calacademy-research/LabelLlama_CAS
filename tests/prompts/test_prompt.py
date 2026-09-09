@@ -13,7 +13,7 @@ OCR = PROMPTS_DIR / "ocr_v2.md"
 
 def make_prompt(path: Path, **kwargs: dict) -> Prompt:
     kwargs.setdefault("model_id", "test-model")
-    return Prompt(prompt=path, **kwargs)
+    return Prompt(prompt_md=path, **kwargs)
 
 
 class TestPrompt(unittest.TestCase):

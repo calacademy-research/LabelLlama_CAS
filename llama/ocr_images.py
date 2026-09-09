@@ -25,7 +25,13 @@ def ocr_images(args: argparse.Namespace) -> None:
 
     docs = OcrDocs(args.image_dir, args.image_glob, args.ocr_file, args.limit)
 
-    prompt = Prompt(**vars(args))
+    prompt = Prompt(
+        prompt_md=args.prompt_md,
+        model_id=args.model_id,
+        temperature=args.temperature,
+        max_tokens=args.max_tokens,
+        thinking=args.thinking,
+    )
 
     statuses = StatusCounts()
 
@@ -149,7 +155,7 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     )
     prompt_group = arg_parser.add_argument_group("prompt options")
     prompt_group.add_argument(
-        "--prompt",
+        "--prompt-md",
         type=Path,
         default=Path("prompts/ocr_v2.md"),
         metavar="PATH",
@@ -229,6 +235,8 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         arg_parser.error("one of --image-dir or --image-glob is required")
     if ns.image_dir and not ns.image_dir.is_dir():
         arg_parser.error(f"--image-dir is not a directory: {ns.image_dir}")
+    if not ns.prompt_md.is_file():
+        arg_parser.error(f"--prompt-md is not a file: {ns.prompt_md}")
     if ns.limit is not None and ns.limit < 1:
         arg_parser.error(f"--limit must be an integer >= 1: {ns.limit}")
     if ns.threads < 1:

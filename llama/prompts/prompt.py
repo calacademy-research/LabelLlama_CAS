@@ -3,9 +3,12 @@ import os
 import re
 from enum import StrEnum
 from textwrap import dedent
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 from llama.prompts.prompt_markdown_parser import PromptMarkdownParser
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 FIRST_COLUMNS = ["status", "source", "elapsed", "text"]
 
@@ -21,8 +24,15 @@ class Prompt:
     text_msg: ClassVar[str] = """Extract data from this `text`:\n\n"""
     # ----------------------------------------
 
-    def __init__(self, **kwargs: dict[str, Any]) -> None:
-        prompt_parser = PromptMarkdownParser(kwargs["prompt"])
+    def __init__(
+        self,
+        prompt_md: Path,
+        model_id: str = "",
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        thinking: Thinking = Thinking.USE_SERVER,
+    ) -> None:
+        prompt_parser = PromptMarkdownParser(prompt_md)
         self.name = prompt_parser.name
         self.description = prompt_parser.description
         self.req_fields = prompt_parser.req_fields
@@ -45,7 +55,9 @@ class Prompt:
             self.system_msg += self.json_schema
 
         self._headers: dict = self.header_template()
-        self._payload: dict = self.payload_template(**kwargs)
+        self._payload: dict = self.payload_template(
+            model_id, temperature, max_tokens, thinking
+        )
 
     def headers(self) -> dict:
         return self._headers
@@ -80,25 +92,29 @@ class Prompt:
             head["Authorization"] = f"Bearer {api_key}"
         return head
 
-    def payload_template(self, **kwargs: dict[str, Any]) -> dict:
+    def payload_template(
+        self,
+        model_id: str = "",
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        thinking: Thinking = Thinking.USE_SERVER,
+    ) -> dict:
         payload = {
-            "model": kwargs.get("model_id", ""),
+            "model": model_id,
             "messages": [
                 {"role": "system", "content": self.system_msg},
                 {"role": "replace me"},
             ],
-            "response_format": self.json_schema,
         }
         if self.json_schema:
             payload["response_format"] = self.json_schema
 
-        if kwargs.get("temperature") is not None:
-            payload["temperature"] = kwargs["temperature"]
+        if temperature is not None:
+            payload["temperature"] = temperature
 
-        if kwargs.get("max_tokens") is not None:
-            payload["max_tokens"] = kwargs["max_tokens"]
+        if max_tokens is not None:
+            payload["max_tokens"] = max_tokens
 
-        thinking = kwargs.get("thinking") or Thinking.USE_SERVER
         match thinking:
             case Thinking.DISABLE_TEMPLATE:
                 payload["chat_template_kwargs"] = {"enable_thinking": False}

@@ -19,8 +19,8 @@ def postprocess_fields(args: argparse.Namespace) -> None:
 
     df = pd.read_csv(args.parsed_file, dtype=str).fillna("")
 
-    prompt = Prompt(**vars(args))
-    cleaner = TextCleaner(args.prompt)
+    prompt = Prompt(prompt_md=args.prompt_md)
+    cleaner = TextCleaner(args.prompt_md)
     cleaner.validate_columns(df.columns, prompt)
 
     llm_columns = cleaner.get_llm_columns(list(df.columns))
@@ -105,7 +105,7 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     )
     prompt_group = arg_parser.add_argument_group("prompt options")
     prompt_group.add_argument(
-        "--prompt",
+        "--prompt-md",
         type=Path,
         required=True,
         metavar="path",
@@ -133,6 +133,8 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         help="""Limit to this many records.""",
     )
     ns = arg_parser.parse_args(args)
+    if not ns.prompt_md.is_file():
+        arg_parser.error(f"--prompt-md is not a file: {ns.prompt_md}")
     return ns
 
 

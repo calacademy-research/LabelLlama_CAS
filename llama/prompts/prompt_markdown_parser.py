@@ -26,11 +26,11 @@ def get_front_yaml(text: str, path: Path) -> dict:
 
 
 class PromptMarkdownParser:
-    def __init__(self, prompt_path: Path) -> None:
-        with prompt_path.open() as f:
+    def __init__(self, prompt_md: Path) -> None:
+        with prompt_md.open() as f:
             text = f.read()
 
-        front = get_front_yaml(text, prompt_path)
+        front = get_front_yaml(text, prompt_md)
         self.name: str = front["name"]
         self.description: str = front["description"]
         self.system_msg: str = ""

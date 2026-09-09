@@ -19,7 +19,7 @@ class TestElevation(unittest.TestCase):
     def test_elevation_02(self) -> None:
         e = make_elevation("3000 ft")
         assert e.elevation == 3000.0
-        self.assertAlmostEqual(e.minimumElevationInMeters, 914.4)  # noqa: PT009
+        self.assertAlmostEqual(e.minimumElevationInMeters, 914.4)
         assert e.maximumElevationInMeters == ""
         assert e.elevationUnits == "ft"
 
@@ -56,13 +56,13 @@ class TestElevation(unittest.TestCase):
     def test_elevation_08(self) -> None:
         # Meters must come after miles in the vocab/terms/unit_terms.csv
         e = make_elevation("100 mi")
-        self.assertAlmostEqual(e.minimumElevationInMeters, 160934.4)  # noqa: PT009
+        self.assertAlmostEqual(e.minimumElevationInMeters, 160934.4)
         assert e.elevationUnits == "mi"
 
     def test_elevation_09(self) -> None:
         # Meters must come after millimeters in the vocab/terms/unit_terms.csv
         e = make_elevation("100 mm")
-        self.assertAlmostEqual(e.minimumElevationInMeters, 0.1)  # noqa: PT009
+        self.assertAlmostEqual(e.minimumElevationInMeters, 0.1)
         assert e.elevationUnits == "mm"
 
 

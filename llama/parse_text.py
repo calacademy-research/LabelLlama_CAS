@@ -24,7 +24,13 @@ from llama.results.task_writer import TaskWriter
 def parse_text(args: argparse.Namespace) -> None:
     job_began = log.job_began(args.log_file, args=args)
 
-    prompt = Prompt(**vars(args))
+    prompt = Prompt(
+        prompt_md=args.prompt_md,
+        model_id=args.model_id,
+        temperature=args.temperature,
+        max_tokens=args.max_tokens,
+        thinking=args.thinking,
+    )
 
     docs = ParsedDocs(
         args.parsed_file, args.ocr_file, args.limit, expected_columns=prompt.columns
@@ -153,7 +159,7 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     )
     prompt_group = arg_parser.add_argument_group("prompt options")
     prompt_group.add_argument(
-        "--prompt",
+        "--prompt-md",
         type=Path,
         required=True,
         metavar="path",
@@ -234,8 +240,8 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     ns = arg_parser.parse_args(args)
     if not ns.ocr_file.is_file():
         arg_parser.error(f"--ocr-file is not a file: {ns.ocr_file}")
-    if not ns.prompt.is_file():
-        arg_parser.error(f"--prompt is not a file: {ns.prompt}")
+    if not ns.prompt_md.is_file():
+        arg_parser.error(f"--prompt-md is not a file: {ns.prompt_md}")
     if ns.threads < 1:
         arg_parser.error("--threads must be >= 1")
     if ns.timeout < 1:
