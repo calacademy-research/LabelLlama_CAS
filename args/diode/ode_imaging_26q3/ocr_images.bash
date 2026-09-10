@@ -4,7 +4,7 @@ data_dir=data/diode/ode_imaging_260805
 uv run ./llama/ocr_images.py \
   --image-glob "$data_dir"/images/"*_card.*" \
   --ocr-file "$data_dir"/ocr_images_260808.csv \
-  --prompt prompts/ocr_v2.md \
+  --prompt-md prompts/ocr_v2.md \
   --model-id gemma-4-E4B-it-Q8_0 \
   --api-host http://localhost:8080/v1 \
   --temperature 0.1 \
@@ -18,7 +18,7 @@ data_dir=data/diode/fsca
 uv run ./llama/ocr_images.py \
   --image-glob "$data_dir"/"images/**/*_card.*" \
   --ocr-file "$data_dir"/ocr_images_260808.csv \
-  --prompt prompts/ocr_v2.md \
+  --prompt-md prompts/ocr_v2.md \
   --model-id gemma-4-E4B-it-Q8_0 \
   --api-host http://localhost:8080/v1 \
   --temperature 0.1 \
@@ -32,7 +32,7 @@ data_dir=data/diode/amnh
 uv run ./llama/ocr_images.py \
   --image-glob "$data_dir"/"images/**/*" \
   --ocr-file "$data_dir"/ocr_images_260809.csv \
-  --prompt prompts/ocr_v2.md \
+  --prompt-md prompts/ocr_v2.md \
   --model-id gemma-4-E4B-it-Q8_0 \
   --api-host http://localhost:8080/v1 \
   --temperature 0.1 \

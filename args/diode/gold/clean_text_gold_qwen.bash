@@ -1,9 +1,9 @@
 #!/bin/bash
 
-uv run llama/clean_llm_output.py \
-  --in-file data/diode/gold_std/gold_qwen_2026-06-02a.csv \
-  --out-file data/diode/gold_std/gold_qwen_2026-06-02a_clean.csv \
-  --prompt prompts/llm_fields/diode.md \
+uv run llama/clean_text.py \
+  --parsed-file data/diode/gold_std/gold_qwen_2026-06-02a.csv \
+  --clean-file data/diode/gold_std/gold_qwen_2026-06-02a_clean.csv \
+  --prompt-md prompts/diode_v2.md \
   --log-file data/diode/gold_std/gold_std.log
 
 

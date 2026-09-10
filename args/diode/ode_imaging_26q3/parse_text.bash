@@ -4,7 +4,7 @@
 # uv run llama/parse_text.py \
 #     --ocr-file "$data_dir"/ocr_images_260808.csv \
 #     --parsed-file "$data_dir"/parse_text_260809.csv \
-#     --prompt prompts/diode_v2.md \
+#     --prompt-md prompts/diode_v2.md \
 #     --model-id qwen3.6-35b-a3b-mtp \
 #     --api-host "http://localhost:1234/v1" \
 #     --temperature 0.1 \
@@ -16,7 +16,7 @@ data_dir=data/diode/fsca
 uv run llama/parse_text.py \
     --ocr-file "$data_dir"/ocr_images_260808.csv \
     --parsed-file "$data_dir"/parse_text_260810.csv \
-    --prompt prompts/diode_v2.md \
+    --prompt-md prompts/diode_v2.md \
     --model-id qwen3.6-35b-a3b-mtp \
     --api-host "http://localhost:1234/v1" \
     --temperature 0.1 \
@@ -28,7 +28,7 @@ uv run llama/parse_text.py \
 # uv run llama/parse_text.py \
 #     --ocr-file "$data_dir"/ocr_images_260809.csv \
 #     --parsed-file "$data_dir"/parse_text_260810.csv \
-#     --prompt prompts/diode_v2.md \
+#     --prompt-md prompts/diode_v2.md \
 #     --model-id qwen3.6-35b-a3b-mtp \
 #     --api-host "http://localhost:1234/v1" \
 #     --temperature 0.1 \

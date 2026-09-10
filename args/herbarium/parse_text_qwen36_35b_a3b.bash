@@ -4,9 +4,9 @@
 for org in "nau"; do
     uv run llama/parse_text.py \
         --ocr-file "data/herbarium/ocr_olmocr2/ocr_${org}_images.csv" \
-        --parse-file "data/herbarium/qwen36_35b_a3b_raw/qwen36_35b_a3b_${org}.csv" \
-        --prompt prompts/llm_fields/herbarium_v1.md \
-        --model "qwen/qwen3.6-35b-a3b" \
+        --parsed-file "data/herbarium/qwen36_35b_a3b_raw/qwen36_35b_a3b_${org}.csv" \
+        --prompt-md prompts/herbarium_v2.md \
+        --model-id "qwen/qwen3.6-35b-a3b" \
         --api-host "http://localhost:1234/v1" \
         --temperature 0.1 \
         --timeout 300 \

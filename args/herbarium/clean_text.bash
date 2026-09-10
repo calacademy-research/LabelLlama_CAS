@@ -6,10 +6,10 @@
 
 # for parse_file in data/herbarium/gpt_nano_raw/*.csv; do
 #     name=$(basename "$parse_file" .csv)
-#     uv run llama/clean_llm_output.py \
-#         --parse-file "$parse_file" \
+#     uv run llama/clean_text.py \
+#         --parsed-file "$parse_file" \
 #         --clean-file "$clean_dir"/"$name"_clean.csv \
-#         --prompt prompts/llm_fields/herbarium.md \
+#         --prompt-md prompts/herbarium_v2.md \
 #         --log-file data/herbarium/gpt_nano_clean/clean.log
 # done
 
@@ -19,10 +19,10 @@
 
 # for parse_file in data/herbarium/qwen36_35b_a3b_raw/*.csv; do
 #     name=$(basename "$parse_file" .csv)
-#     uv run llama/clean_llm_output.py \
-#         --parse-file "$parse_file" \
+#     uv run llama/clean_text.py \
+#         --parsed-file "$parse_file" \
 #         --clean-file "$clean_dir"/"$name"_clean.csv \
-#         --prompt prompts/llm_fields/herbarium.md \
+#         --prompt-md prompts/herbarium_v2.md \
 #         --log-file data/herbarium/qwen36_35b_a3b_clean/clean.log
 # done
 
@@ -32,9 +32,9 @@ mkdir -p "$clean_dir"
 
 for parse_file in data/herbarium/gemma4_12b_raw/*.csv; do
     name=$(basename "$parse_file" .csv)
-    uv run llama/clean_llm_output.py \
-        --parse-file "$parse_file" \
+    uv run llama/clean_text.py \
+        --parsed-file "$parse_file" \
         --clean-file "$clean_dir"/"$name"_clean.csv \
-        --prompt prompts/llm_fields/herbarium.md \
+        --prompt-md prompts/herbarium_v2.md \
         --log-file data/herbarium/gemma4_12b_clean/clean.log
 done
