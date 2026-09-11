@@ -105,6 +105,14 @@ def call_ocr(
         response = requests.post(
             url, headers=headers, json=payload, timeout=args.timeout
         )
+        if not response.ok:
+            logging.error(
+                "OCR request failed for %s | HTTP %s | %s",
+                image_path,
+                response.status_code,
+                response.text,
+            )
+
         response.raise_for_status()
         result = response.json()
 
