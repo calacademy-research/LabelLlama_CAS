@@ -8,6 +8,7 @@ import textwrap
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
+from glob import glob
 
 import pandas as pd
 import requests
@@ -20,16 +21,16 @@ def ocr_images(args: argparse.Namespace) -> None:
     job_began = timer.job_began(args.log_file, args=args)
 
     already_read = []
-    if args.docs.exists():
+    if args.ocr_file.exists():
         with contextlib.suppress(pd.errors.EmptyDataError):
-            records = io_util.read_list_of_dicts(args.docs)
+            records = io_util.read_list_of_dicts(args.ocr_file)
             already_read = [
                 Path(r["source"])
                 for r in records
                 if r.get("source") and r.get("status") == "success"
             ]
 
-    image_paths = sorted(args.image_dir.glob(args.glob))
+    image_paths = sorted(Path(p) for p in glob(args.image_glob))
     image_paths = image_paths[: args.limit]
     logging.info(f"There are {len(image_paths)} images to OCR")
 
@@ -104,6 +105,14 @@ def call_ocr(
         response = requests.post(
             url, headers=headers, json=payload, timeout=args.timeout
         )
+        if not response.ok:
+            logging.error(
+                "OCR request failed for %s | HTTP %s | %s",
+                image_path,
+                response.status_code,
+                response.text,
+            )
+
         response.raise_for_status()
         result = response.json()
 
