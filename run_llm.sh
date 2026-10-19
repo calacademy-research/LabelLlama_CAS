@@ -12,8 +12,8 @@ echo "[$(date)] Virtual environment activated."
 API_KEY="${LLM_API_KEY:-}"
 
 if [ -z "$API_KEY" ]; then
-    echo "ERROR: OPENAI_API_KEY is not set."
-    echo "Run: export OPENAI_API_KEY='your_api_key_here'"
+    echo "ERROR: LLM_API_KEY is not set."
+    echo "Run: export LLM_API_KEY='your_api_key_here'"
     exit 1
 fi
 
