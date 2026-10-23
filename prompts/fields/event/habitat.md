@@ -24,9 +24,10 @@ It describes the surrounding environment as if you were dropped there randomly w
 - Soil and substrate: dry sand, loamy soil, gravel, calcareous rock, peat.
 - Vegetation type and structure: open grassland, mixed forest, shrubland, pine savanna, dense canopy.
 - Moisture and hydrological setting: wet soil, marsh, floodplain, stream bank, spring seep.
-- Disturbance and land use: roadside, old field, disturbed ground, burned ground, agricultural edge, power-line clearing.
+- Disturbance and land use: roadside, old field, disturbed ground, burned ground, agricultural edge, power-line clearing, picnic area.
 - Life zones, general terrain, and microhabitats: alpine meadow, desert, rocky slopes, canyon slopes, leaf litter, tree trunks, crevices.
 - All qualifying habitat phrases, including multiple habitats in the same label.
+- "cultivated" and/or text describing a plant as cultivated in a green house or garden.
 
 ## Exclude
 

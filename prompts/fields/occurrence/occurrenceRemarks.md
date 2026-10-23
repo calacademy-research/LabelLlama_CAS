@@ -40,6 +40,7 @@ woodiness and herbaceousness
 botany specific plant description terms (e.g glabrous, prostrate, cespitose, etc...).
 whether plant is aquatic, a water plant, a weed, shrub etc.... (e.g general plant descriptor)
 whether perennial or annual plant.
+Hybrid information, if a plant is a cross between multiple listed taxonomy. "Hybrid between ..."
 
 Examples:
 "Small annual herb with yellow flowers"
@@ -48,6 +49,8 @@ Examples:
 "Locally abundant"
 "Flowers white"
 "Many plants in bloom"
+"Flower Color: Pink. Height: Subshrub"
+"Flower Color: yellow/white Height: Vine"
 
 ▶️ EXCLUDE:
 
@@ -62,6 +65,7 @@ Scientific names or taxonomic authors, including of associated species.
 Collector names or collection numbers
 Random fragments or meaningless text
 Altitude/ Elevation
+Cultivated information.
 
 ▶️ FILTERING NONSENSE:
 
