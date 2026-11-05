@@ -7,7 +7,7 @@ module: llama/fields/event/habitat.py
 
 # Prompt Habitat
 
-`habitat` (str): Extract only text that explicitly describes the physical environment or ecological setting where the specimen grows or was collected. 
+`habitat` (str): Extract only habitat. Text that explicitly describes the physical environment or ecological setting where the specimen grows or was collected. 
 It describes the surrounding environment as if you were dropped there randomly without a map, so no proper place names , distances, however physical descriptions of the surrounding environment or biome. These can include things like measurements of soil ph or water levels.
 
 ## Habitat versus locality
@@ -31,11 +31,12 @@ It describes the surrounding environment as if you were dropped there randomly w
 
 ## Exclude
 
-- Place names, named geographic features, named roads or trails, and phrases describing proximity to them.
+- Place names, named geographic features, any proper place name, named roads or trails, and phrases describing proximity to them.
 - Distances, geographic bearings, route directions, coordinates, township/range/section references, and elevation.
 - Associated taxa and host identities; these belong in `associatedTaxa`. General vegetation types such as “pine forest” remain habitat.
 - Specimen traits, including height, color, flowers, fruits, developmental stage, abundance, and chromosome counts.
 - Collection methods, equipment, and climate measurements.
+- elevation , altitude, and meters/ft above sea level.
 
 ## Mixed text: extract phrases, not whole sentences
 
@@ -86,3 +87,6 @@ habitat: “Burned ground”
 
 Input: “Dry sand; near McGee Creek; open grassland; small annual with red flowers”  
 habitat: “Dry sand; open grassland”
+
+Input: "East shore of Flathead Lake at Yellow Bay"
+habitat: ""
