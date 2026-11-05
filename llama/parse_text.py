@@ -94,6 +94,10 @@ def call_lm(
             {"role": "user", "content": prompt_util.Prompt.build_text_prompt(text)},
         ],
     }
+
+    if args.reasoning_effort is not None:
+        payload["reasoning_effort"] = args.reasoning_effort
+
     if args.temperature is not None:
         payload["temperature"] = args.temperature
 
@@ -182,6 +186,14 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
             ChatGPT-nano I will increase this to 20 or more, and for a local model
             I will reduce this to 4.""",
     )
+
+    model_group.add_argument(
+        "--reasoning-effort",
+        choices=["none", "low", "medium", "high", "xhigh"],
+        default=None,
+        help="Reasoning effort for supported models. Omit to use the model default.",
+    )
+
     model_group.add_argument(
         "--temperature",
         type=float,

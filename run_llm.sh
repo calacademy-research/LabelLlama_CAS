@@ -4,11 +4,6 @@ set -euo pipefail
 
 echo "[$(date)] Starting run_llm.sh"
 
-echo "[$(date)] Activating virtual environment..."
-source .venv/bin/activate
-echo "[$(date)] Virtual environment activated."
-
-
 API_KEY="${LLM_API_KEY:-}"
 
 if [ -z "$API_KEY" ]; then
@@ -30,31 +25,16 @@ LM_EXTRACTS_CSV="$2"
 
 echo "[$(date)] Input OCR CSV: $OCR_DOCS_CSV"
 echo "[$(date)] Output extraction CSV: $LM_EXTRACTS_CSV"
-
-# create cleaned filename automatically
-BASE_NAME="${LM_EXTRACTS_CSV%.csv}"
-CLEANED_OUTPUT_CSV="${BASE_NAME}_cleaned.csv"
-
-echo "[$(date)] Cleaned output CSV will be: $CLEANED_OUTPUT_CSV"
-
-echo "[$(date)] Starting LLM extraction step..."
-
+echo "[$(date)] Starting LLM extraction"
 
 uv run llama/parse_text.py \
     --ocr-file "$OCR_DOCS_CSV" \
     --parse-file "$LM_EXTRACTS_CSV" \
     --prompt prompts/fields/herbarium.md \
     --api-host https://api.openai.com/v1 \
-    --model gpt-5-nano \
+    --model gpt-5.4-nano \
+    --reasoning-effort medium \
+    --timeout 300 \
     --threads 2
 
-echo "[$(date)] LLM extraction completed."
-
-#uv run llama/postprocess.py \
-#    --in-file "$LM_EXTRACTS_CSV" \
-#    --out-file "$CLEANED_OUTPUT_CSV" \
-#    --run-field-models
-
-#echo "[$(date)] Postprocessing completed."
-
-#echo "[$(date)] Script finished successfully."
+echo "[$(date)] LLM extraction completed. Output saveed to : $LM_EXTRACTS_CSV"
